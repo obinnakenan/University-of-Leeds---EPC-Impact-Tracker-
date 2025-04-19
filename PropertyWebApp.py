@@ -18,7 +18,7 @@ st.set_page_config(
 )
 
 # --- Banner and Title ---
-st.image("C:/Users/vbvb850/Downloads/Uni_Leeds_600_400.jpg", use_container_width=True)
+st.image("Uni_Leeds_600_400.jpg", use_container_width=True)
 st.markdown("## 🏡 EPC Impact Tracker: Housing, Inequality & Environment")
 
 # --- Tabs ---
@@ -31,7 +31,7 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
 
 # --- Load and clean data ---
 def load_data():
-    df = pd.read_csv("C:/Users/vbvb850/Downloads/merged_England_wales_EPC.csv")
+    df = pd.read_csv("merged_England_wales_EPC.csv")
     df['CURRENT_ENER_EFFICIENCY'] = pd.to_numeric(df['CURRENT_ENER_EFFICIENCY'], errors='coerce')
     df['POTENTIAL_ENERGY_EFFICIENCY'] = pd.to_numeric(df['POTENTIAL_ENERGY_EFFICIENCY'], errors='coerce')
     df['CO2_EMISS_CURR'] = pd.to_numeric(df['CO2_EMISS_CURR'], errors='coerce')
