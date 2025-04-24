@@ -8,6 +8,10 @@ import seaborn as sns
 import altair as alt
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score
+from streamlit_autorefresh import st_autorefresh
+
+# Remount / keep-alive: refresh every 5 minutes (300 000 ms)
+st_autorefresh(interval=300_000, limit=None, key="keep_alive")
 
 
 # --- Page Config ---
