@@ -10,16 +10,15 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score
 from streamlit_autorefresh import st_autorefresh
 
-# Remount / keep-alive: refresh every 5 minutes (300 000 ms)
-st_autorefresh(interval=300_000, limit=None, key="keep_alive")
-
-
 # --- Page Config ---
 st.set_page_config(
     page_title="EPC Impact Tracker: Housing, Inequality & Environment",
     layout="wide",
     page_icon="🏡"
 )
+
+# Remount / keep-alive: refresh every 5 minutes (300 000 ms)
+st_autorefresh(interval=300_000, limit=None, key="keep_alive")
 
 # --- Banner and Title ---
 st.image("Uni_Leeds_600_400.jpg", use_container_width=True)
