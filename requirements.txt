@@ -1,13 +1,13 @@
 streamlit
-plotly.express
-plotly.graph_objects
+plotly
 pandas
 pydeck
-matplotlib.pyplot
+matplotlib
 seaborn
 altair
 sklearn.linear_model
 sklearn.metrics
+base64
 
 
 
