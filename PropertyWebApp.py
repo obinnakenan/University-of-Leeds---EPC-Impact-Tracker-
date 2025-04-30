@@ -5,9 +5,6 @@ import pandas as pd
 import pydeck as pdk
 import matplotlib.pyplot as plt
 import seaborn as sns
-import altair as alt
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import r2_score
 import base64
 
 
