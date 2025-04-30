@@ -4,7 +4,6 @@ pandas
 pydeck
 matplotlib
 seaborn
-sklearn
 
 
 
