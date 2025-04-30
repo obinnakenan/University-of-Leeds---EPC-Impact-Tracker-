@@ -109,7 +109,7 @@ if not st.session_state.show_app:
 
 
 # --- Banner and Title ---
-st.image("C:/Users/vbvb850/Downloads/Uni_Leeds_600_400.jpg", use_container_width=True)
+st.image("Uni_Leeds_600_400.jpg", use_container_width=True)
 st.markdown("### EPC Impact Tracker: Housing, Inequality & Environment")
 
 # --- Tabs ---
