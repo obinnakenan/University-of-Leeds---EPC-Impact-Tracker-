@@ -8,7 +8,7 @@ seaborn
 altair
 sklearn.linear_model
 sklearn.metrics
-base64
+
 
 
 
