@@ -8,3 +8,4 @@ altair
 scikit-learn
 statsmodels
 streamlit-autorefresh
+base64
