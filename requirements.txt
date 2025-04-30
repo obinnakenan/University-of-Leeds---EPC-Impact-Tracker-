@@ -4,9 +4,8 @@ pandas
 pydeck
 matplotlib
 seaborn
-altair
-sklearn.linear_model
-sklearn.metrics
+sklearn
+
 
 
 
