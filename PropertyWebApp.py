@@ -52,7 +52,7 @@ def set_background_local(png_file):
             position: absolute;
             bottom: -190px;
             right: 400px;
-            font-size: 11px;
+            font-size: 15px;
         }}
 
         .footer-link a {{
