@@ -1,9 +1,12 @@
 streamlit
 plotly
 pandas
-pydeck
 matplotlib
-seaborn
+altair
+base64
+numpy
+json
+re
 
 
 
