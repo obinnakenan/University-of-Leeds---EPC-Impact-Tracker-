@@ -203,10 +203,6 @@ def load_data():
     # extract the year from 'Lodgement_date'   
     df['INSPECTION_DATE'] = pd.to_datetime(df['INSPECTION_DATE'],errors='coerce')
     df['Year'] = df['INSPECTION_DATE'].dt.year
-    # drop rows where Year is NaN
-    df = df[df['Year'].notna()].copy()
-    # now it's safe to cast to plain Python ints
-    df['Year'] = df['Year'].astype(int)
     return df
 
 df = load_data()
@@ -420,8 +416,11 @@ with tab1:
                             filtered_df[filtered_df['Year'].isin(selected_years)]
                             .groupby('Year')['Energy Gap']
                             .mean()
-                            .reset_index()
                         )
+
+                        # Cast to int and sort
+                        df_trend['Year'] = df_trend['Year'].astype(int)
+                        df_trend = df_trend.sort_values('Year')
 
                         fig_trend = px.line(
                             df_trend,
