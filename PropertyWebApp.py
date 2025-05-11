@@ -4,7 +4,6 @@ import plotly.graph_objects as go
 import pandas as pd
 import matplotlib.pyplot as plt
 import altair as alt
-from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score
 import base64
 import numpy as np
