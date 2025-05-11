@@ -747,7 +747,7 @@ with tab2:
 
                 with col2:
                     # --- Load GeoJSON file ---
-                    with open(r"C:\Users\vbvb850\Local_Authority_Districts_December_2021_UK_BUC_2022_3960795867023731705.geojson") as f:
+                    with open(r"Local_Authority_Districts_December_2021_UK_BUC_2022_3960795867023731705.geojson") as f:
                         geojson_data = json.load(f)
 
                     # --- Calculate color scale range ---
