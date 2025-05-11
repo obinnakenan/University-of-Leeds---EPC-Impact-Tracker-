@@ -2,11 +2,14 @@ import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go  
 import pandas as pd
-import pydeck as pdk
 import matplotlib.pyplot as plt
-import seaborn as sns
+import altair as alt
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score
 import base64
-
+import numpy as np
+import json
+import re
 
 # --- Page Config ---
 st.set_page_config(
@@ -15,102 +18,159 @@ st.set_page_config(
     page_icon="🏡"
 )
 
+# --- Function to convert image files to base64 ---
+def load_base64_image(path):
+    try:
+        with open(path, "rb") as image_file:
+            return base64.b64encode(image_file.read()).decode()
+    except FileNotFoundError:
+        return ""
+
+# --- Load and encode images ---
+bg_image = load_base64_image(r"Background image.png")
+logo = load_base64_image(r"logo.png")
+crest = load_base64_image(r"crest.png")
+link_to_paper = "https://www.sciencedirect.com/science/article/pii/S0140988323005406"
 
 
-# Set local background image
-def set_background_local(png_file):
-    with open(png_file, "rb") as f:
-        data = base64.b64encode(f.read()).decode()
-    st.markdown(
-        f"""
+
+
+# --- Handle intro screen logic ---
+query_params = st.query_params
+
+# If button clicked, set session_state and redirect (removes query param)
+if query_params.get("show_app") == "1":
+    st.session_state["show_app"] = True
+    st.query_params.clear()  # Clears the query parameters from the URL
+    st.rerun()
+
+# Default: if session_state not set, show intro
+if "show_app" not in st.session_state:
+    st.session_state["show_app"] = False
+
+
+# --- INTRO SCREEN ---
+if not st.session_state.get("show_app", False):
+    st.markdown(f"""
         <style>
-        .stApp {{
-            background-image: url("data:image/png;base64,{data}");
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            background-attachment: fixed;
-        }}
+            .stApp {{
+                background-image: url("data:image/png;base64,{bg_image}");
+                background-size: cover;
+                background-position: center;
+                background-attachment: scroll;
+                height: 100vh;
+                margin: 0;
+                padding: 0;
+            }}
 
-        .transparent-button button {{
-            background-color: green !important;  /* Tiffany Blue */
-            border: none;
-            color: white;
-            font-weight: bold;
-            border-radius: 8px;
-            padding: 0.5em 1.25em;
-            font-size: 16px;
-            transition: background-color 0.3s ease;
-        }}
+            .transparent-button {{
+                background-color: rgba(255, 255, 255, 0.3);
+                border: none;
+                border-radius: 10px;
+                padding: 12px 24px;
+                font-size: 16px;
+                color: black;
+                cursor: pointer;
+                transition: background-color 0.3s ease;
+                z-index: 10;
+            }}
 
-        .transparent-button button:hover {{
-            background-color: #099f9a !important;  /* Slightly darker Tiffany Blue on hover */
-            cursor: pointer;
-        }}
+            .transparent-button:hover {{
+                background-color: rgba(255, 255, 255, 0.6);
+            }}
 
-        .footer-link {{
-            position: absolute;
-            bottom: -190px;
-            right: 400px;
-            font-size: 15px;
-        }}
+            .footer {{
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                padding: 10px 0 20px;
+                background-color: transparent;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 100;
+                width: 100%;
+            }}
 
-        .footer-link a {{
-            color: black;
-            text-decoration: none;
-        }}
+            .footer .footer-content {{
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                gap: 30px;
+                text-align: center;
+                flex-wrap: wrap;
+            }}
 
-        .footer-link a:hover {{
-            text-decoration: underline;
-        }}
+            .footer img {{
+                height: 30px;
+            }}
+
+            .footer .footer-link {{
+                font-size: 10px;
+                color: black;
+                text-decoration: none;
+                display: inline-block;
+                padding: 4px 8px;
+                background-color: transparent;
+                cursor: pointer;
+                z-index: 1000;
+                position: relative;
+            }}
+
+            .footer .footer-link:hover {{
+                text-decoration: underline;
+                background-color: rgba(0, 0, 0, 0.05);
+            }}
         </style>
-        """,
-        unsafe_allow_html=True
-    )
 
-# --- INTRO SCREEN FIRST ---
-if 'show_app' not in st.session_state:
-    st.session_state.show_app = False
+        <div style='
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding-top: 50vh;
+            position: relative;
+            z-index: 0;
+        '>
+            <form method="get">
+                <input type="hidden" name="show_app" value="1" />
+                <button type="submit" class="transparent-button">EXPLORE THE DATA</button>
+            </form>
+        </div>
 
-if not st.session_state.show_app:
-    set_background_local(r"Background image.png")  # Use uploaded file path
-
-    st.markdown("<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>", unsafe_allow_html=True)
-
-    # Centered Transparent Button
-    col1, col2, col3 = st.columns([1, 1, 1])
-    with col2:
-        with st.container():
-            st.markdown('<div class="transparent-button">', unsafe_allow_html=True)
-            clicked = st.button("EXPLORE THE DATA", use_container_width=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-
-    # Click logic
-    if clicked:
-        st.session_state.show_app = True
-        st.rerun()
-    else:
-        st.markdown(
-            """
-            <div class='footer-link'>
-                <a href="https://www.sciencedirect.com/science/article/pii/S0140988323005406" target="_blank">
-                Regional persistence of the energy efficiency gap: Evidence from England and Wales<br>
-                (Energy Economics Journal 2023)
+        <div class="footer">
+            <div class="footer-content">
+                <img src="data:image/png;base64,{logo}" alt="Logo">
+                <img src="data:image/png;base64,{crest}" alt="Crest">
+                <a href="{link_to_paper}" target="_blank" class="footer-link">
+                    Regional persistence of the energy efficiency gap <br>
+                    (Energy Economics Journal 2023)
                 </a>
-                </a>
-                </a>
-        </a>
             </div>
-            """,
-            unsafe_allow_html=True
-        )
-        st.stop()
+        </div>
+    """, unsafe_allow_html=True)
+
+    st.stop()
+
+# --- MAIN APP CONTENT ---
+if st.session_state.show_app:
+    st.markdown("""
+        <style>
+            .stApp {
+                background: none;
+            }
+            .footer {
+                display: none;
+            }
+        </style>
+    """, unsafe_allow_html=True)
 
 
 
 # --- Banner and Title ---
-st.image("Uni_Leeds_600_400.jpg", use_container_width=True)
-st.markdown("### EPC Impact Tracker: Housing, Inequality & Environment")
+st.image(r"Banner logo.png", use_container_width=True)
+# st.markdown("### EPC Impact Tracker: Housing, Inequality & Environment")
 
 # --- Tabs ---
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
@@ -143,8 +203,9 @@ def load_data():
     # computes the CO2 gap by subtracting the Potential and Current CO2 potential
     df['CO2 Gap'] = df['Potential CO2 Emission']  - df['Current CO2 Emission']
     # extract the year from 'Lodgement_date'   
-    df['LODGEMENT_DATE'] = pd.to_datetime(df['LODGEMENT_DATE'])
-    df['Year'] = df['LODGEMENT_DATE'].dt.year
+    df['INSPECTION_DATE'] = pd.to_datetime(df['INSPECTION_DATE'],errors='coerce')
+    df['Year'] = df['INSPECTION_DATE'].dt.year
+    df['Year'] = df['Year'].astype('Int32')
     return df
 
 df = load_data()
@@ -152,158 +213,196 @@ df = load_data()
 
 with tab1:
     st.write(""" """)
-    with st.container():
-        # Overall layout: 1/3 width for filters, 2/3 for charts
-        col_filters, col_main = st.columns([1, 2])
 
-        with col_filters:
-            # three-column filter layout e.g "Region name", "County area name", and "post town"
-            Region_filter, County_area_Filter, Post_town_filter = st.columns(3, gap="medium")
+    # View mode
+    filter_mode = st.radio(
+        "Select Data View Mode:",
+        ["Rental(s)", "Sales"],
+        horizontal=True
+    )
 
-            with Region_filter:
-                st.markdown('<div style="margin-bottom: 0; font-weight: bold;">Region:</div>',unsafe_allow_html=True)
-                select_yorkshire = st.checkbox(
-                    "**Yorkshire and The Humber**",
-                    value=True,
-                    key="yorkshire_chk"
-                )
+    if filter_mode == "Rental(s)":
+        with st.container():
+            col_filters, col_main = st.columns([1, 2])
 
-            with County_area_Filter:
-                # County dropdown
-                st.markdown('<div style="margin-bottom: 0; font-weight: bold;">County area(s):</div>',unsafe_allow_html=True)
-                counties = sorted(df['County area name'].dropna().unique())
-                selected_county = st.selectbox(
-                    "County Area",
-                    options=counties,
-                    key="county_sel",
-                    label_visibility="collapsed"
-                )
+            with col_filters:
+                # Three-column layout
+                Region_filter, County_area_Filter, Post_town_filter = st.columns(3, gap="medium")
 
-            with Post_town_filter:
-                # Post Town dropdown (cascading)
-                st.markdown('<div style="margin-bottom: 0; font-weight: bold;">Post town(s):</div>',unsafe_allow_html=True)
-                towns = sorted(
-                    df.loc[
-                        df['County area name'] == selected_county,
-                        'Post town name'
-                    ].dropna()
-                    .unique()
-                )
-                selected_town = st.selectbox(
-                    "Post Town",
-                    options=towns,
-                    key="town_sel",
-                    label_visibility="collapsed"
-                )
-            
-            # displays if no tickbox is selected
-            if not select_yorkshire:
-                st.error("No data selected. Please tick 'Yorkshire and The Humber' to proceed.")
-                st.stop()
+                with Region_filter:
+                    st.markdown('<div style="margin-bottom: 0; font-weight: bold;">Region:</div>', unsafe_allow_html=True)
+                    select_yorkshire = st.checkbox(
+                        "**Yorkshire and The Humber**",
+                        value=True,
+                        key="yorkshire_chk"
+                    )
 
-            # -- proper filter using exact region string --
-            filtered_df = df[
-                (df['Region name'] == 'Yorkshire and The Humber') &
-                (df['County area name'] == selected_county) &
-                (df['Post town name'] == selected_town)
-            ]
+                if not select_yorkshire:
+                    st.error("No data selected. Please tick 'Yorkshire and The Humber' to proceed.")
+                    st.stop()
 
-            if filtered_df.empty:
-                st.warning("No records matched your filters. Adjust your selections.")
-            else:
-                st.success(f"{len(filtered_df)} records matched your filters.")
+                # Filter Yorkshire data
+                yorkshire_df = df[df['Region name'] == 'Yorkshire and The Humber']
 
-    with col_main:
+                with County_area_Filter:
+                    st.markdown('<div style="margin-bottom: 0; font-weight: bold;">County area(s):</div>', unsafe_allow_html=True)
+                    county_options = ["All"] + sorted(yorkshire_df['County area name'].dropna().unique())
+                    selected_county = st.selectbox(
+                        "County Area",
+                        options=county_options,
+                        key="county_sel",
+                        label_visibility="collapsed"
+                    )
+
+                with Post_town_filter:
+                    st.markdown('<div style="margin-bottom: 0; font-weight: bold;">Post town(s):</div>', unsafe_allow_html=True)
+
+                    if selected_county == "All":
+                        towns = sorted(yorkshire_df['Post town name'].dropna().unique())
+                    else:
+                        towns = sorted(
+                            yorkshire_df[yorkshire_df['County area name'] == selected_county]['Post town name'].dropna().unique()
+                        )
+
+                    town_options = ["All"] + towns
+                    selected_town = st.selectbox(
+                        "Post Town",
+                        options=town_options,
+                        key="town_sel",
+                        label_visibility="collapsed"
+                    )
+
+                # Filtering based on selection
+                filtered_df = yorkshire_df.copy()
+                if selected_county != "All":
+                    filtered_df = filtered_df[filtered_df['County area name'] == selected_county]
+                if selected_town != "All":
+                    filtered_df = filtered_df[filtered_df['Post town name'] == selected_town]
+
+                if filtered_df.empty:
+                    st.warning("No records matched your filters. Adjust your selections.")
+                else:
+                    st.success(f"{len(filtered_df)} records matched your filters.")
+
+        with col_main:
             if filtered_df.empty:
                 st.info("Adjust filters on the left to see charts.")
 
     with st.container():
-                # === 1. Energy Efficiency Distribution ===
-                eff = filtered_df[['Current Energy Efficiency', 'Potential Energy Efficiency']].melt(
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    # === 1. Energy Efficiency Distribution ===
+                    st.markdown("##### Current vs Potential Energy Efficiency (with Energy Gap Trend)")
+                    # Melt the dataframe for histogram
+                    eff = filtered_df[['Current Energy Efficiency', 'Potential Energy Efficiency']].melt(
                         var_name="Type", value_name="Efficiency"
                     )
-                fig1 = px.histogram(
+
+                    # Create histogram figure
+                    fig1 = px.histogram(
                         eff, x='Efficiency', color='Type',
-                        barmode='overlay', nbins=30
+                        barmode='overlay', nbins=30,
+                        opacity=0.6  # Ensure line is visible
                     )
-                fig1.update_layout(
-                        title="Current vs Potential Energy Efficiency",
-                        hovermode='x'
-                    )
-                st.plotly_chart(fig1, use_container_width=True)
 
-                avg_cur = filtered_df['Current Energy Efficiency'].mean()
-                avg_pot = filtered_df['Potential Energy Efficiency'].mean()
-                st.markdown(
-                        f"**📊 Average current efficiency:** {avg_cur:.1f} | "
-                        f"**Potential:** {avg_pot:.1f} "
-                        f"(+{avg_pot - avg_cur:.1f} points)"
+                    # Energy Gap trend as histogram-style line
+                    energy_gap_vals = filtered_df['Energy Gap'].dropna()
+                    hist_vals, bin_edges = np.histogram(energy_gap_vals, bins=30)
+                    bin_centers = 0.5 * (bin_edges[1:] + bin_edges[:-1])
+
+                    gap_line = go.Scatter(
+                        x=bin_centers,
+                        y=hist_vals,
+                        mode='lines',
+                        name='Energy Gap Trend',
+                        line=dict(color='purple', width=2)
                     )
+
+                    # Add the trend line
+                    fig1.add_trace(gap_line)
+
+                    # Update layout
+                    fig1.update_layout(
+                        # title="Current vs Potential Energy Efficiency (with Energy Gap Trend)",
+                        hovermode='x',
+                        yaxis=dict(title='Count')
+                    )
+
+
+                    # --- Dynamic NLP Summary Based on Filtered Data ---
+                    current_avg = filtered_df['Current Energy Efficiency'].mean()
+                    potential_avg = filtered_df['Potential Energy Efficiency'].mean()
+                    energy_gap_avg = filtered_df['Energy Gap'].mean()
+                    gap_range = filtered_df['Energy Gap'].max() - filtered_df['Energy Gap'].min()
+                    location_focus = selected_town if selected_town != "All" else selected_county
+
+                    summary_text = f"""
+
+                    The average **Current Energy Efficiency** is **{current_avg:.1f}**, while the **Potential Efficiency** could reach **{potential_avg:.1f}**, 
+                    indicating an average **Energy Gap** of **{energy_gap_avg:.1f}**. This suggests that properties in {location_focus} Local Authority District have a moderate opportunity to improve their energy performance.
+                    """
+
+                    st.markdown(summary_text)
+
+
+
+                    # Display the chart
+                    st.plotly_chart(fig1, use_container_width=True)
+
+
+
+                with col2:
+                    # --- Load GeoJSON file ---
+                    with open(r"C:\Users\vbvb850\Local_Authority_Districts_December_2021_UK_BUC_2022_3960795867023731705.geojson") as f:
+                        geojson_data = json.load(f)
+
+                    # --- Calculate color scale range ---
+                    gap_min = filtered_df['Energy Gap'].min()
+                    gap_max = filtered_df['Energy Gap'].max()
+                    color_range = [gap_min, gap_max]
+                    color_scale = "plasma"
+
+                    # --- Filter rows with valid coordinates and energy gap ---
+                    map_df = filtered_df.dropna(subset=['Latitude', 'Longitude', 'Energy Gap'])
+
+                    if not map_df.empty:
+                        # --- Compute map center based on available coordinates ---
+                        center_lat = map_df['Latitude'].mean()
+                        center_lon = map_df['Longitude'].mean()
+
+                        # --- Plot choropleth map ---
+                        fig = px.choropleth_mapbox(
+                            map_df,
+                            geojson=geojson_data,
+                            locations='LAD_NM',
+                            featureidkey="properties.LAD21NM",  # <- Match to your GeoJSON property
+                            color='Energy Gap',
+                            color_continuous_scale=color_scale,
+                            range_color=color_range,
+                            mapbox_style="carto-positron",
+                            zoom=6,
+                            center={"lat": center_lat, "lon": center_lon},
+                            opacity=0.5,
+                            hover_name='LAD_NM'
+                        )
+
+                       
+                        fig.update_layout(title_text=f"Energy Gap by {selected_town} Local Authority District",
+                                          margin={"r":0, "t":50, "l":0, "b":0})
+                        col2.plotly_chart(fig, use_container_width=True)
+                    else:
+                        col2.warning("No data to plot for the selected filters.")
+
                 
-                col1, col2 = st.columns(2)
-                # === 1. Energy Gap Distribution ===
-                with col1:
-                        if not filtered_df.empty:
-                            # --- Calculate color scale range ---
-                            gap_min = filtered_df['Energy Gap'].min()
-                            gap_max = filtered_df['Energy Gap'].max()
-                            color_range = [gap_min, gap_max]
-                            color_scale = "plasma"
-
-                            # Clean map data
-                            map_df = filtered_df.dropna(subset=['Latitude', 'Longitude', 'Energy Gap'])
-
-                            # --- Histogram ---
-                            fig_hist = px.histogram(
-                                filtered_df,
-                                x='Energy Gap',
-                                nbins=30,
-                                title=f"Distribution of Energy Gap ",
-                                color_discrete_sequence=['purple'],
-                                labels={'Energy Gap': 'Energy Gap (points)'}
-                            )
-                            fig_hist.update_layout(
-                                bargap=0.1,
-                                xaxis_title="Energy Gap",
-                                yaxis_title="Count",
-                                template="plotly_white"
-                            )
-                            st.plotly_chart(fig_hist, use_container_width=True)
-
-                        with col2:
-                            # --- Plot 2: Map of Energy Gap ---
-                            if not map_df.empty:
-                                # --- Map ---
-                                    # --- Compute map center based on selected Post Town ---
-                                center_lat = map_df['Latitude'].mean()
-                                center_lon = map_df['Longitude'].mean()
-                                fig_map = px.scatter_mapbox(
-                                    map_df,
-                                    lat='Latitude',
-                                    lon='Longitude',
-                                    color='Energy Gap',
-                                    size='Energy Gap',
-                                    size_max=10,
-                                    color_continuous_scale=color_scale,
-                                    range_color=color_range,
-                                    zoom=10,
-                                    center={"lat": center_lat, "lon": center_lon},
-                                    mapbox_style="carto-positron",
-                                    hover_data=['POSTCODE', 'Energy Gap'],
-                                    title=f"Energy Gap in {selected_town}"
-                                    )
-                                st.plotly_chart(fig_map, use_container_width=True)
-                            else:
-                                st.warning("No data to plot for the selected filters.")
-
 
 
                 with st.container():
-                    st.markdown("### 📈 Energy Gap Trend Over Time (Last 5 Years)")
-
+                    st.markdown(f"""
+                        ##### Trends in Average Energy Gap by Year""")
                     # Get last 5 years
                     available_years = sorted(filtered_df['Year'].dropna().unique())
-                    last_five_years = available_years[-5:]
+                    last_five_years = available_years[-15:]
 
                     # Show checkboxes for each year
                     st.markdown("**Select year(s) to display:**")
@@ -328,14 +427,35 @@ with tab1:
                             x='Year',
                             y='Energy Gap',
                             markers=True,
-                            title="Average Energy Gap by Year",
+                            # title="Average Energy Gap by Year",
                             labels={'Energy Gap': 'Average Energy Gap', 'Year': 'Year'}
                         )
+
+                        # Set line color to purple
+                        fig_trend.update_traces(line=dict(color='purple'))
 
                         fig_trend.update_layout(
                             hovermode='x unified',
                             xaxis=dict(dtick=1)
                         )
+
+
+                    if not df_trend.empty:
+                        start_year = df_trend['Year'].min()
+                        end_year = df_trend['Year'].max()
+                        gap_start = df_trend[df_trend['Year'] == start_year]['Energy Gap'].values[0]
+                        gap_end = df_trend[df_trend['Year'] == end_year]['Energy Gap'].values[0]
+                        gap_change = gap_end - gap_start
+
+                        trend_direction = "increased" if gap_change > 0 else "decreased" if gap_change < 0 else "remained stable"
+
+                        st.markdown(f"""
+                        Over the selected years, the **average energy gap** has **{trend_direction}** from **{gap_start:.1f}** in **{start_year}** to **{gap_end:.1f}** in **{end_year}**.
+                        This suggests that energy efficiency has **{"worsened" if gap_change > 0 else "improved" if gap_change < 0 else "not changed significantly"}** over time across the selected region.
+                        This trend helps to evaluate the **impact of policy changes**, **renovation efforts**, or **market dynamics** affecting energy performance.
+                        """)
+
+
 
                         st.plotly_chart(fig_trend, use_container_width=True)
                     else:
@@ -345,33 +465,32 @@ with tab1:
 
 
 
+                # === 2. Area-Level Comparison (County or Post Town) ===
+                if selected_county == "All":
+                    group_level = "County area name"
+                else:
+                    group_level = "Post town name"
 
-
-
-             # === 2. Regional Comparison ===
-                region_avg = (
+                area_avg = (
                     filtered_df
-                    .groupby('Region name')['Current Energy Efficiency']
+                    .groupby(group_level)['Current Energy Efficiency']
                     .mean()
                     .reset_index()
+                    .dropna()
                 )
+
                 fig3 = px.bar(
-                    region_avg, x='Current Energy Efficiency', y='Region name',
-                    orientation='h', labels={'Current Energy Efficiency': 'Avg Efficiency'}
+                    area_avg, 
+                    x='Current Energy Efficiency', 
+                    y=group_level,
+                    orientation='h', 
+                    labels={'Current Energy Efficiency': 'Avg Efficiency', group_level: 'Area'},
+                    title=f"Average Energy Efficiency by {group_level.replace('_', ' ').title()}"
                 )
                 st.plotly_chart(fig3, use_container_width=True)
 
-                top_r = region_avg.nlargest(1, 'Current Energy Efficiency').iloc[0]
-                bot_r = region_avg.nsmallest(1, 'Current Energy Efficiency').iloc[0]
-                st.markdown(
-                    f"**📍 Most efficient region:** {top_r['Region name']} "
-                    f"({top_r['Current Energy Efficiency']:.1f}) | "
-                    f"**Least efficient:** {bot_r['Region name']} "
-                    f"({bot_r['Current Energy Efficiency']:.1f})"
-                )
-
                 # === 3. Environmental Impact ===
-                st.markdown("#### Environmental Impact Rating (Current vs Potential)")
+                st.markdown("##### Environmental Impact Rating (Current vs Potential)")
                 imp = filtered_df[['ENV_IMP_CURR', 'ENV_IMP_POTENT']].melt(
                     var_name="Impact Type", value_name="Impact Score"
                 )
@@ -384,22 +503,9 @@ with tab1:
                     "Lower potential impact scores indicate opportunity for improvement."
                 )
 
-                # === 4. Energy Consumption ===
-                st.markdown("#### Energy Consumption (kWh/m²)")
-                cons = filtered_df[['ENERGY_CONSUM_CURR', 'ENERGY_CONSUM_POTEN']].melt(
-                    var_name="Consumption Type", value_name="Energy Consumption"
-                )
-                fig_cons = px.box(
-                    cons, x="Consumption Type", y="Energy Consumption",
-                    points="outliers"
-                )
-                st.plotly_chart(fig_cons, use_container_width=True)
-                st.markdown(
-                    "Outliers shown; potential scenario generally consumes less energy."
-                )
 
-                # === 5. Top 10 Least Efficient ===
-                st.markdown("#### 🏚️ Top 10 Least Efficient Properties")
+                # === 4. Top 10 Least Efficient ===
+                st.markdown("##### Top 10 Least Efficient Properties")
                 least10 = filtered_df.nsmallest(10, 'Current Energy Efficiency')
                 st.dataframe(
                     least10[[
@@ -408,8 +514,18 @@ with tab1:
                     ]]
                 )
 
+
+
+                # === 5. Energy Gap by Property Type
+                st.markdown("##### Avg Energy Gap by Property Type")
+                gap_by_type = filtered_df.groupby('PROPERTY_TYPE')['Energy Gap'].mean().reset_index().dropna()
+                fig_gap = px.bar(gap_by_type, x='PROPERTY_TYPE', y='Energy Gap')
+                # , title="Avg Energy Gap by Property Type")
+                st.plotly_chart(fig_gap, use_container_width=True)
+
+
                 # === 6. Efficiency & CO₂ by Property Type ===
-                st.markdown("#### 🏠 Efficiency and CO₂ by Property Type")
+                st.markdown("##### Efficiency and CO₂ by Property Type")
                 ptype = (
                     filtered_df
                     .groupby('PROPERTY_TYPE')[['Current Energy Efficiency', 'Current CO2 Emission']]
@@ -434,19 +550,66 @@ with tab1:
                 - **Lowest CO₂**: {loCO2['PROPERTY_TYPE']} ({loCO2['Current CO2 Emission']:.1f} t)
                 """)
 
+
+
                 # === 7. Efficiency by Age ===
+
+                def classify_construction_age(value):
+                    if pd.isna(value) or "NO DATA" in str(value).upper():
+                        return "Unknown"
+                    
+                    value = str(value).replace("England and Wales: ", "").strip().lower()
+                    
+                    # Handle specific text cases
+                    if "before 1900" in value:
+                        return "Pre 1950"
+                    if re.match(r"\d{4}", value):
+                        year = int(value[:4])
+                    elif re.match(r"\d{4}-\d{4}", value):
+                        year = int(value.split('-')[0])
+                    else:
+                        return "Unknown"
+
+                    # Assign to band
+                    if year < 1950:
+                        return "Pre 1950"
+                    elif 1950 <= year <= 2011:
+                        return "1950 - 2011"
+                    elif year >= 2012:
+                        return "2012 onwards"
+                    else:
+                        return "Unknown"
+
+                # Apply to DataFrame
+                filtered_df['Construction Band'] = filtered_df['CONSTRUCTION_AGE'].apply(classify_construction_age)
+
+
+
+                # Group and visualize
                 st.markdown("#### Average Efficiency by Construction Age")
                 age_eff = (
                     filtered_df
-                    .groupby('CONSTRUCTION_AGE')['Current Energy Efficiency']
-                    .mean().dropna().reset_index()
+                    .groupby('Construction Band')['Current Energy Efficiency']
+                    .mean()
+                    .dropna()
+                    .reset_index()
                 )
+
+                # Sort categories
+                category_order = ["Pre 1950", "1950 - 2011", "2012 onwards", "Unknown"]
+                age_eff['Construction Band'] = pd.Categorical(age_eff['Construction Band'], categories=category_order, ordered=True)
+                age_eff = age_eff.sort_values('Construction Band')
+
+                # Plot
                 fig_age = px.bar(
-                    age_eff.sort_values('Current Energy Efficiency'),
-                    x='Current Energy Efficiency', y='CONSTRUCTION_AGE',
-                    orientation='h', labels={"Current Energy Efficiency": "Avg Efficiency"}
+                    age_eff,
+                    x='Current Energy Efficiency',
+                    y='Construction Band',
+                    orientation='h',
+                    labels={"Current Energy Efficiency": "Avg Efficiency", "Construction Band": "Construction Age"}
                 )
                 st.plotly_chart(fig_age, use_container_width=True)
+
 
                 # === Download button ===
                 st.download_button(
@@ -463,194 +626,313 @@ with tab1:
 # === Tab 2 ===
 with tab2:
     st.write(""" """)
-    with st.container():
-        # Overall layout: 1/3 width for filters, 2/3 for charts
-        col_filters, col_main = st.columns([1, 2])
 
-        with col_filters:
-            # three-column filter layout e.g "Region name", "County area name", and "post town"
-            Region_filter, County_area_Filter, Post_town_filter = st.columns(3, gap="medium")
+    # View mode
+    filter_mode2 = st.radio(
+        "Select Data View Mode:",
+        ["Rental(s)", "Sales"],
+        horizontal=True,
+        key="radio2"
+    )
 
-            with Region_filter:
-                st.markdown('<div style="margin-bottom: 0; font-weight: bold;">Region:</div>',unsafe_allow_html=True)
-                select_yorkshire = st.checkbox(
-                    "**Yorkshire and The Humber**",
-                    value=True,
-                    key="yorkshire_chk2"
-                )
+    if filter_mode2 == "Rental(s)":
+        with st.container():
+            col_filters, col_main = st.columns([1, 2])
 
-            with County_area_Filter:
-                # County dropdown
-                st.markdown('<div style="margin-bottom: 0; font-weight: bold;">County area(s):</div>',unsafe_allow_html=True)
-                counties = sorted(df['County area name'].dropna().unique())
-                selected_county = st.selectbox(
-                    "County Area",
-                    options=counties,
-                    key="county_sel2",
-                    label_visibility="collapsed"
-                )
+            with col_filters:
+                # Three-column layout
+                Region_filter, County_area_Filter, Post_town_filter = st.columns(3, gap="medium")
 
-            with Post_town_filter:
-                # Post Town dropdown (cascading)
-                st.markdown('<div style="margin-bottom: 0; font-weight: bold;">Post town(s):</div>',unsafe_allow_html=True)
-                towns = sorted(
-                    df.loc[
-                        df['County area name'] == selected_county,
-                        'Post town name'
-                    ].dropna()
-                    .unique()
-                )
-                selected_town = st.selectbox(
-                    "Post Town",
-                    options=towns,
-                    key="town_sel2",
-                    label_visibility="collapsed"
-                )
-            
-            # displays if no tickbox is selected
-            if not select_yorkshire:
-                st.error("No data selected. Please tick 'Yorkshire and The Humber' to proceed.")
-                st.stop()
+                with Region_filter:
+                    st.markdown('<div style="margin-bottom: 0; font-weight: bold;">Region:</div>', unsafe_allow_html=True)
+                    select_yorkshire = st.checkbox(
+                        "**Yorkshire and The Humber**",
+                        value=True,
+                        key="yorkshire_chk2"
+                    )
 
-            # -- proper filter using exact region string --
-            filtered_df = df[
-                (df['Region name'] == 'Yorkshire and The Humber') &
-                (df['County area name'] == selected_county) &
-                (df['Post town name'] == selected_town)
-            ]
+                if not select_yorkshire:
+                    st.error("No data selected. Please tick 'Yorkshire and The Humber' to proceed.")
+                    st.stop()
 
-            if filtered_df.empty:
-                st.warning("No records matched your filters. Adjust your selections.")
-            else:
-                st.success(f"{len(filtered_df)} records matched your filters.")
+                # Filter Yorkshire data
+                yorkshire_df = df[df['Region name'] == 'Yorkshire and The Humber']
 
-    with col_main:
+                with County_area_Filter:
+                    st.markdown('<div style="margin-bottom: 0; font-weight: bold;">County area(s):</div>', unsafe_allow_html=True)
+                    county_options = ["All"] + sorted(yorkshire_df['County area name'].dropna().unique())
+                    selected_county = st.selectbox(
+                        "County Area",
+                        options=county_options,
+                        key="county_sel2",
+                        label_visibility="collapsed"
+                    )
+
+                with Post_town_filter:
+                    st.markdown('<div style="margin-bottom: 0; font-weight: bold;">Post town(s):</div>', unsafe_allow_html=True)
+
+                    if selected_county == "All":
+                        towns = sorted(yorkshire_df['Post town name'].dropna().unique())
+                    else:
+                        towns = sorted(
+                            yorkshire_df[yorkshire_df['County area name'] == selected_county]['Post town name'].dropna().unique()
+                        )
+
+                    town_options = ["All"] + towns
+                    selected_town = st.selectbox(
+                        "Post Town",
+                        options=town_options,
+                        key="town_sel2",
+                        label_visibility="collapsed"
+                    )
+
+                # Filtering based on selection
+                filtered_df = yorkshire_df.copy()
+                if selected_county != "All":
+                    filtered_df = filtered_df[filtered_df['County area name'] == selected_county]
+                if selected_town != "All":
+                    filtered_df = filtered_df[filtered_df['Post town name'] == selected_town]
+
+                if filtered_df.empty:
+                    st.warning("No records matched your filters. Adjust your selections.")
+                else:
+                    st.success(f"{len(filtered_df)} records matched your filters.")
+
+        with col_main:
             if filtered_df.empty:
                 st.info("Adjust filters on the left to see charts.")
 
+
     with st.container():
-                # === 1. CO2 Emission ===
-                eff = filtered_df[['Current CO2 Emission', 'Potential CO2 Emission']].melt(
-                        var_name="Type", value_name="Emission"
-                    )
-                fig1 = px.histogram(
-                        eff, x='Emission', color='Type',
-                        barmode='overlay', nbins=30
-                    )
-                fig1.update_layout(
-                        title="Current vs Potential CO2 Emission",
-                        hovermode='x'
-                    )
-                st.plotly_chart(fig1, use_container_width=True)
-
-                avg_cur = filtered_df['Current CO2 Emission'].mean()
-                avg_pot = filtered_df['Potential CO2 Emission'].mean()
-                st.markdown(
-                        f"**📊 Average co2 emission:** {avg_cur:.1f} | "
-                        f"**Potential:** {avg_pot:.1f} "
-                        f"(+{avg_pot - avg_cur:.1f} points)"
-                    )
-                
                 col1, col2 = st.columns(2)
-                # === 1. C02 Gap Distribution ===
+                
                 with col1:
-                        if not filtered_df.empty:
-                            # --- Calculate color scale range ---
-                            gap_min = filtered_df['CO2 Gap'].min()
-                            gap_max = filtered_df['CO2 Gap'].max()
-                            color_range = [gap_min, gap_max]
-                            color_scale = "plasma"
+                    # === 1. C02 Efficiency Distribution ===
+                    # Melt the dataframe for histogram
+                    eff = filtered_df[['Current CO2 Emission', 'Potential CO2 Emission']].melt(
+                        var_name="Type", value_name="Emissions"
+                    )
 
-                            # Clean map data
-                            map_df = filtered_df.dropna(subset=['Latitude', 'Longitude', 'CO2 Gap'])
+                    # Create histogram figure
+                    fig1 = px.histogram(
+                        eff, x='Emissions', color='Type',
+                        barmode='overlay', nbins=30,
+                        opacity=0.6  # Ensure line is visible
+                    )
 
-                            # --- Histogram ---
-                            fig_hist = px.histogram(
-                                filtered_df,
-                                x='CO2 Gap',
-                                nbins=30,
-                                title=f"Distribution of CO2 Gap ",
-                                color_discrete_sequence=['purple'],
-                                labels={'CO2 Gap': 'CO2 Gap (points)'}
-                            )
-                            fig_hist.update_layout(
-                                bargap=0.1,
-                                xaxis_title="CO2 Gap",
-                                yaxis_title="Count",
-                                template="plotly_white"
-                            )
-                            st.plotly_chart(fig_hist, use_container_width=True)
+                    # Energy Gap trend as histogram-style line
+                    CO2_gap_vals = filtered_df['CO2 Gap'].dropna()
+                    hist_vals, bin_edges = np.histogram(CO2_gap_vals, bins=30)
+                    bin_centers = 0.5 * (bin_edges[1:] + bin_edges[:-1])
 
-                        with col2:
-                            # --- Plot 2: Map of Energy Gap ---
-                            if not map_df.empty:
-                                # --- Map ---
-                                    # --- Compute map center based on selected Post Town ---
-                                center_lat = map_df['Latitude'].mean()
-                                center_lon = map_df['Longitude'].mean()
-                                fig_map = px.scatter_mapbox(
-                                    map_df,
-                                    lat='Latitude',
-                                    lon='Longitude',
-                                    color='CO2 Gap',
-                                    size='CO2 Gap',
-                                    size_max=10,
-                                    color_continuous_scale=color_scale,
-                                    range_color=color_range,
-                                    zoom=10,
-                                    center={"lat": center_lat, "lon": center_lon},
-                                    mapbox_style="carto-positron",
-                                    hover_data=['POSTCODE', 'CO2 Gap'],
-                                    title=f"CO2 Gap in {selected_town}"
-                                    )
-                                st.plotly_chart(fig_map, use_container_width=True)
-                            else:
-                                st.warning("No data to plot for the selected filters.")
+                    gap_line = go.Scatter(
+                        x=bin_centers,
+                        y=hist_vals,
+                        mode='lines',
+                        name='CO2 Gap Trend',
+                        line=dict(color='purple', width=2)
+                    )
+
+                    # Add the trend line
+                    fig1.add_trace(gap_line)
+
+                    # Update layout
+                    fig1.update_layout(
+                        title="Current vs Potential CO2 Emission (with CO2 Gap Trend)",
+                        hovermode='x',
+                        yaxis=dict(title='Count')
+                    )
+
+                    # Display the chart
+                    st.plotly_chart(fig1, use_container_width=True)
 
 
+                with col2:
+                    # --- Load GeoJSON file ---
+                    with open(r"C:\Users\vbvb850\Local_Authority_Districts_December_2021_UK_BUC_2022_3960795867023731705.geojson") as f:
+                        geojson_data = json.load(f)
 
-                with st.container():
-                    st.markdown("### 📈 CO2 Gap Trend Over Time (Last 5 Years)")
+                    # --- Calculate color scale range ---
+                    gap_min = filtered_df['CO2 Gap'].min()
+                    gap_max = filtered_df['CO2 Gap'].max()
+                    color_range = [gap_min, gap_max]
+                    color_scale = "plasma"
 
-                    # Get last 5 years
-                    available_years = sorted(filtered_df['Year'].dropna().unique())
-                    last_five_years = available_years[-5:]
+                    # --- Filter rows with valid coordinates and CO2 gap ---
+                    map_df = filtered_df.dropna(subset=['Latitude', 'Longitude', 'CO2 Gap'])
 
-                    # Show checkboxes for each year
-                    st.markdown("**Select year(s) to display:**")
-                    year_cols = st.columns(len(last_five_years))
-                    selected_years = []
+                    if not map_df.empty:
+                        # --- Compute map center based on available coordinates ---
+                        center_lat = map_df['Latitude'].mean()
+                        center_lon = map_df['Longitude'].mean()
 
-                    for i, year in enumerate(last_five_years):
-                        if year_cols[i].checkbox(str(year), value=True):
-                            selected_years.append(year)
-
-                    # Plot if any year is selected
-                    if selected_years:
-                        df_trend = (
-                            filtered_df[filtered_df['Year'].isin(selected_years)]
-                            .groupby('Year')['CO2 Gap']
-                            .mean()
-                            .reset_index()
+                        # --- Plot choropleth map ---
+                        fig = px.choropleth_mapbox(
+                            map_df,
+                            geojson=geojson_data,
+                            locations='LAD_NM',
+                            featureidkey="properties.LAD21NM",  # <- Match to your GeoJSON property
+                            color='CO2 Gap',
+                            color_continuous_scale=color_scale,
+                            range_color=color_range,
+                            mapbox_style="carto-positron",
+                            zoom=6,
+                            center={"lat": center_lat, "lon": center_lon},
+                            opacity=0.5,
+                            hover_name='LAD_NM'
                         )
 
-                        fig_trend = px.line(
-                            df_trend,
-                            x='Year',
-                            y='CO2 Gap',
-                            markers=True,
-                            title="Average CO2 Gap by Year",
-                            labels={'CO2 Gap': 'Average CO2 Gap', 'Year': 'Year'}
-                        )
+                       
+                        fig.update_layout(title_text=f"CO2 Gap by {selected_town} Local Authority District",
+                                          margin={"r":0, "t":50, "l":0, "b":0})
+                        col2.plotly_chart(fig, use_container_width=True)
 
-                        fig_trend.update_layout(
-                            hovermode='x unified',
-                            xaxis=dict(dtick=1)
-                        )
+                        # --- NLP Summary that reflects the map output ---
+                        # --- NLP Summary ---
+                        # Aggregate to get one CO2 Gap per LAD
+                        agg_df = map_df.groupby('LAD_NM', as_index=False)['CO2 Gap'].mean()
 
-                        st.plotly_chart(fig_trend, use_container_width=True)
+                        # Get average, min, and max from aggregated data
+                        avg_gap = agg_df['CO2 Gap'].mean()
+                        best_areas = agg_df.nsmallest(3, 'CO2 Gap')
+                        worst_areas = agg_df.nlargest(3, 'CO2 Gap')
+
+                        best_text = ", ".join([f"{row['LAD_NM']} ({row['CO2 Gap']:.1f})" for _, row in best_areas.iterrows()])
+                        worst_text = ", ".join([f"{row['LAD_NM']} ({row['CO2 Gap']:.1f})" for _, row in worst_areas.iterrows()])
+
+                        st.markdown(f"""
+                        ### 🌍 CO₂ Emission Reduction Potential in {selected_town if selected_town != "All" else selected_county}
+
+                        This map visualizes the geographical variation in **CO₂ emissions gap** — the difference between current and potential CO₂ output — across **Local Authority Districts** in **{selected_town if selected_town != "All" else selected_county}**.
+
+                        - **Average CO₂ gap**: {avg_gap:.1f} units  
+                        - ✅ **Best performing areas** (lower CO₂ gap): {best_text}  
+                        - 🔍 **Worst performing areas** (higher CO₂ gap): {worst_text}
+
+                        Areas with higher CO₂ gaps represent greater opportunities for **carbon reduction** through energy efficiency upgrades or greener technologies.
+
+                        Lighter-colored regions on the map emit less excess CO₂, while darker regions emit more than their efficient potential.
+
+                        These insights help policymakers and planners focus **decarbonization efforts** in high-impact regions.
+                        """)
+
                     else:
-                        st.info("Please select at least one year to view the trend.")
+                        col2.warning("No data to plot for the selected filters.")
+
+                
+    #             col1, col2 = st.columns(2)
+    #             # === 1. C02 Gap Distribution ===
+    #             with col1:
+    #                     if not filtered_df.empty:
+    #                         # --- Calculate color scale range ---
+    #                         gap_min = filtered_df['CO2 Gap'].min()
+    #                         gap_max = filtered_df['CO2 Gap'].max()
+    #                         color_range = [gap_min, gap_max]
+    #                         color_scale = "plasma"
+
+    #                         # Clean map data
+    #                         map_df = filtered_df.dropna(subset=['Latitude', 'Longitude', 'CO2 Gap'])
+
+    #                         # --- Histogram ---
+    #                         fig_hist = px.histogram(
+    #                             filtered_df,
+    #                             x='CO2 Gap',
+    #                             nbins=30,
+    #                             title=f"Distribution of CO2 Gap ",
+    #                             color_discrete_sequence=['purple'],
+    #                             labels={'CO2 Gap': 'CO2 Gap (points)'}
+    #                         )
+    #                         fig_hist.update_layout(
+    #                             bargap=0.1,
+    #                             xaxis_title="CO2 Gap",
+    #                             yaxis_title="Count",
+    #                             template="plotly_white"
+    #                         )
+    #                         st.plotly_chart(fig_hist, use_container_width=True)
+
+    #                     with col2:
+    #                         # --- Plot 2: Map of Energy Gap ---
+    #                         if not map_df.empty:
+    #                             # --- Map ---
+    #                                 # --- Compute map center based on selected Post Town ---
+    #                             center_lat = map_df['Latitude'].mean()
+    #                             center_lon = map_df['Longitude'].mean()
+    #                             fig_map = px.scatter_mapbox(
+    #                                 map_df,
+    #                                 lat='Latitude',
+    #                                 lon='Longitude',
+    #                                 color='CO2 Gap',
+    #                                 size='CO2 Gap',
+    #                                 size_max=10,
+    #                                 color_continuous_scale=color_scale,
+    #                                 range_color=color_range,
+    #                                 zoom=10,
+    #                                 center={"lat": center_lat, "lon": center_lon},
+    #                                 mapbox_style="carto-positron",
+    #                                 hover_data=['POSTCODE', 'CO2 Gap'],
+    #                                 title=f"CO2 Gap in {selected_town}"
+    #                                 )
+    #                             st.plotly_chart(fig_map, use_container_width=True)
+    #                         else:
+    #                             st.warning("No data to plot for the selected filters.")
+
+
+
+    #             with st.container():
+    #                 st.markdown("### 📈 CO2 Gap Trend Over Time (Last 5 Years)")
+
+    #                 # Get last 5 years
+    #                 available_years = sorted(filtered_df['Year'].dropna().unique())
+    #                 last_five_years = available_years[-5:]
+
+    #                 # Show checkboxes for each year
+    #                 st.markdown("**Select year(s) to display:**")
+    #                 year_cols = st.columns(len(last_five_years))
+    #                 selected_years = []
+
+    #                 for i, year in enumerate(last_five_years):
+    #                     if year_cols[i].checkbox(str(year), value=True):
+    #                         selected_years.append(year)
+
+    #                 # Plot if any year is selected
+    #                 if selected_years:
+    #                     df_trend = (
+    #                         filtered_df[filtered_df['Year'].isin(selected_years)]
+    #                         .groupby('Year')['CO2 Gap']
+    #                         .mean()
+    #                         .reset_index()
+    #                     )
+
+    #                     fig_trend = px.line(
+    #                         df_trend,
+    #                         x='Year',
+    #                         y='CO2 Gap',
+    #                         markers=True,
+    #                         title="Average CO2 Gap by Year",
+    #                         labels={'CO2 Gap': 'Average CO2 Gap', 'Year': 'Year'}
+    #                     )
+
+    #                     fig_trend.update_layout(
+    #                         hovermode='x unified',
+    #                         xaxis=dict(dtick=1)
+    #                     )
+
+    #                     st.plotly_chart(fig_trend, use_container_width=True)
+    #                 else:
+    #                     st.info("Please select at least one year to view the trend.")
+    #                             # === 4. Energy Consumption ===
+    #             st.markdown("#### Energy Consumption (kWh/m²)")
+    #             cons = filtered_df[['ENERGY_CONSUM_CURR', 'ENERGY_CONSUM_POTEN']].melt(
+    #                 var_name="Consumption Type", value_name="Energy Consumption"
+    #             )
+    #             fig_cons = px.box(
+    #                 cons, x="Consumption Type", y="Energy Consumption",
+    #                 points="outliers"
+    #             )
+    #             st.plotly_chart(fig_cons, use_container_width=True)
+    #             st.markdown(
+    #                 "Outliers shown; potential scenario generally consumes less energy."
+    #             )
 
 
 
@@ -671,67 +953,67 @@ with tab2:
 
 
 
-    show_saving = st.checkbox("Show CO2 Saving", value=True)
-    co2_current = filtered_df['Current CO2 Emission'].sum()
-    co2_potential = filtered_df['Potential CO2 Emission'].sum()
-    co2_saving = co2_current - co2_potential
+    # show_saving = st.checkbox("Show CO2 Saving", value=True)
+    # co2_current = filtered_df['Current CO2 Emission'].sum()
+    # co2_potential = filtered_df['Potential CO2 Emission'].sum()
+    # co2_saving = co2_current - co2_potential
 
-    fig2 = go.Figure()
-    fig2.add_bar(x=['Current'], y=[co2_current], name='Current', marker_color='#1f77b4')
-    fig2.add_bar(x=['Potential'], y=[co2_potential], name='Potential', marker_color='#2ca02c')
-    if show_saving:
-        fig2.add_bar(x=['Saving'], y=[co2_saving], name='Saving', marker_color='orange')
-        fig2.add_annotation(x=1, y=max(co2_current, co2_potential), text="Projected Saving", showarrow=True, arrowhead=2)
-        fig2.update_layout(title="Total CO2 Emissions (Tonnes)", yaxis_title="Tonnes of CO2", barmode='group', hovermode='x')
-        st.plotly_chart(fig2, use_container_width=True)
-        st.markdown(f"**🌱 Current CO₂ emissions:** {co2_current:,.0f} tonnes | **Potential:** {co2_potential:,.0f} tonnes. \
-                With improvements, emissions could be reduced by **{co2_saving:,.0f} tonnes**, highlighting major environmental benefits.")
-
-
+    # fig2 = go.Figure()
+    # fig2.add_bar(x=['Current'], y=[co2_current], name='Current', marker_color='#1f77b4')
+    # fig2.add_bar(x=['Potential'], y=[co2_potential], name='Potential', marker_color='#2ca02c')
+    # if show_saving:
+    #     fig2.add_bar(x=['Saving'], y=[co2_saving], name='Saving', marker_color='orange')
+    #     fig2.add_annotation(x=1, y=max(co2_current, co2_potential), text="Projected Saving", showarrow=True, arrowhead=2)
+    #     fig2.update_layout(title="Total CO2 Emissions (Tonnes)", yaxis_title="Tonnes of CO2", barmode='group', hovermode='x')
+    #     st.plotly_chart(fig2, use_container_width=True)
+    #     st.markdown(f"**🌱 Current CO₂ emissions:** {co2_current:,.0f} tonnes | **Potential:** {co2_potential:,.0f} tonnes. \
+    #             With improvements, emissions could be reduced by **{co2_saving:,.0f} tonnes**, highlighting major environmental benefits.")
 
 
 
-    st.markdown("Explore how energy efficiency varies by **price** and **tenure**.")
-
-    tenure_filter = st.multiselect("Select Tenure Types:", df["TENURE"].dropna().unique(), default=df["TENURE"].dropna().unique())
-    filtered_df = df[df["TENURE"].isin(tenure_filter)]
-
-    fig1 = px.box(filtered_df, x="TENURE", y="Current Energy Efficiency",
-                  title="Energy Efficiency by Tenure Type",
-                  labels={"Current Energy Efficiency": "Current Energy Efficiency"},
-                  hover_data=["PROPERTY_TYPE", "Amount per week"])
-    fig1.update_layout(xaxis_title="Tenure Type", yaxis_title="Energy Efficiency", height=500)
-    st.plotly_chart(fig1, use_container_width=True)
-
-    st.markdown("#### 💡 Energy efficiency vs rent per week")
-    fig2 = px.scatter(filtered_df, x="Amount per week", y="Current Energy Efficiency",
-                      color="TENURE",
-                      title="Energy Efficiency vs Rent per Week",
-                      hover_data=["PROPERTY_TYPE", "CONSTRUCTION_AGE", "EPC Rating"])
-    fig2.update_layout(height=500)
-    st.plotly_chart(fig2, use_container_width=True)
 
 
-    st.markdown("Compare average energy efficiency across **construction eras**.")
+    # st.markdown("Explore how energy efficiency varies by **price** and **tenure**.")
 
-    age_eff = df.groupby("CONSTRUCTION_AGE")["Current Energy Efficiency"].mean().dropna().sort_values()
-    age_eff_df = age_eff.reset_index().rename(columns={"Current Energy Efficiency": "Average Energy Efficiency"})
+    # tenure_filter = st.multiselect("Select Tenure Types:", df["TENURE"].dropna().unique(), default=df["TENURE"].dropna().unique())
+    # filtered_df = df[df["TENURE"].isin(tenure_filter)]
 
-    fig3 = px.bar(age_eff_df, x="Average Energy Efficiency", y="CONSTRUCTION_AGE",
-                  orientation="h", title="Average Energy Efficiency by Construction Age")
-    fig3.update_layout(height=600)
-    st.plotly_chart(fig3, use_container_width=True)
+    # fig1 = px.box(filtered_df, x="TENURE", y="Current Energy Efficiency",
+    #               title="Energy Efficiency by Tenure Type",
+    #               labels={"Current Energy Efficiency": "Current Energy Efficiency"},
+    #               hover_data=["PROPERTY_TYPE", "Amount per week"])
+    # fig1.update_layout(xaxis_title="Tenure Type", yaxis_title="Energy Efficiency", height=500)
+    # st.plotly_chart(fig1, use_container_width=True)
 
-    st.markdown("Analyze efficiency by **property type** (detached, flat, terrace, etc.).")
+    # st.markdown("#### 💡 Energy efficiency vs rent per week")
+    # fig2 = px.scatter(filtered_df, x="Amount per week", y="Current Energy Efficiency",
+    #                   color="TENURE",
+    #                   title="Energy Efficiency vs Rent per Week",
+    #                   hover_data=["PROPERTY_TYPE", "CONSTRUCTION_AGE", "EPC Rating"])
+    # fig2.update_layout(height=500)
+    # st.plotly_chart(fig2, use_container_width=True)
 
-    property_filter = st.multiselect("Select Property Types:", df["PROPERTY_TYPE"].dropna().unique(), default=df["PROPERTY_TYPE"].dropna().unique())
-    df_type = df[df["PROPERTY_TYPE"].isin(property_filter)]
 
-    fig4 = px.box(df_type, x="PROPERTY_TYPE", y="Current Energy Efficiency",
-                  title="Energy Efficiency by Property Type",
-                  hover_data=["TENURE", "Amount", "CONSTRUCTION_AGE"])
-    fig4.update_layout(height=500)
-    st.plotly_chart(fig4, use_container_width=True)
+    # st.markdown("Compare average energy efficiency across **construction eras**.")
+
+    # age_eff = df.groupby("CONSTRUCTION_AGE")["Current Energy Efficiency"].mean().dropna().sort_values()
+    # age_eff_df = age_eff.reset_index().rename(columns={"Current Energy Efficiency": "Average Energy Efficiency"})
+
+    # fig3 = px.bar(age_eff_df, x="Average Energy Efficiency", y="CONSTRUCTION_AGE",
+    #               orientation="h", title="Average Energy Efficiency by Construction Age")
+    # fig3.update_layout(height=600)
+    # st.plotly_chart(fig3, use_container_width=True)
+
+    # st.markdown("Analyze efficiency by **property type** (detached, flat, terrace, etc.).")
+
+    # property_filter = st.multiselect("Select Property Types:", df["PROPERTY_TYPE"].dropna().unique(), default=df["PROPERTY_TYPE"].dropna().unique())
+    # df_type = df[df["PROPERTY_TYPE"].isin(property_filter)]
+
+    # fig4 = px.box(df_type, x="PROPERTY_TYPE", y="Current Energy Efficiency",
+    #               title="Energy Efficiency by Property Type",
+    #               hover_data=["TENURE", "Amount", "CONSTRUCTION_AGE"])
+    # fig4.update_layout(height=500)
+    # st.plotly_chart(fig4, use_container_width=True)
 
 
 
