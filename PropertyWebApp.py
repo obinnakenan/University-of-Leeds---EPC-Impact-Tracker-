@@ -203,6 +203,9 @@ def load_data():
     # extract the year from 'Lodgement_date'   
     df['INSPECTION_DATE'] = pd.to_datetime(df['INSPECTION_DATE'],errors='coerce')
     df['Year'] = df['INSPECTION_DATE'].dt.year
+    # drop rows where Year is NaN
+    df = df[df['Year'].notna()].copy()
+    # now it's safe to cast to plain Python ints
     df['Year'] = df['Year'].astype(int)
     return df
 
