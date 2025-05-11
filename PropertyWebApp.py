@@ -203,7 +203,7 @@ def load_data():
     # extract the year from 'Lodgement_date'   
     df['INSPECTION_DATE'] = pd.to_datetime(df['INSPECTION_DATE'],errors='coerce')
     df['Year'] = df['INSPECTION_DATE'].dt.year
-    df['Year'] = df['Year'].astype('Int32')
+    df['Year'] = df['Year'].astype(int)
     return df
 
 df = load_data()
