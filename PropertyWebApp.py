@@ -395,49 +395,47 @@ with tab1:
 
 
                 with st.container():
-                    st.markdown(f"""
-                        ##### Trends in Average Energy Gap by Year""")
-                    # Get last 5 years
-                    available_years = sorted(filtered_df['Year'].dropna().unique())
-                    last_five_years = available_years[-15:]
-
-                    # Show checkboxes for each year
-                    st.markdown("**Select year(s) to display:**")
-                    year_cols = st.columns(len(last_five_years))
-                    selected_years = []
-
-                    for i, year in enumerate(last_five_years):
-                        if year_cols[i].checkbox(str(year), value=True):
-                            selected_years.append(year)
-
-                    # Plot if any year is selected
-                    if selected_years:
-                        df_trend = (
-                            filtered_df[filtered_df['Year'].isin(selected_years)]
-                            .groupby('Year')['Energy Gap']
-                            .mean()
-                        )
-
-                        # Cast to int and sort
-                        df_trend['Year'] = df_trend['Year'].astype(int)
-                        df_trend = df_trend.sort_values('Year')
-
-                        fig_trend = px.line(
-                            df_trend,
-                            x='Year',
-                            y='Energy Gap',
-                            markers=True,
-                            # title="Average Energy Gap by Year",
-                            labels={'Energy Gap': 'Average Energy Gap', 'Year': 'Year'}
-                        )
-
-                        # Set line color to purple
-                        fig_trend.update_traces(line=dict(color='purple'))
-
-                        fig_trend.update_layout(
-                            hovermode='x unified',
-                            xaxis=dict(dtick=1)
-                        )
+                     st.markdown("##### Trends in Average Energy Gap by Year")
+                    
+                        # 1) Identify the last 5 years available (they’re floats, possibly with NaN)
+                        years = sorted(filtered_df['Year'].dropna().unique())
+                        last_5 = years[-15:]
+                    
+                        st.markdown("**Select year(s) to display:**")
+                        cols = st.columns(len(last_5))
+                        selected = [
+                            yr for i, yr in enumerate(last_5)
+                            if cols[i].checkbox(str(int(yr)), value=True)
+                        ]
+                    
+                        if not selected:
+                            st.info("Please select at least one year to view the trend.")
+                        else:
+                            # 2) Filter, drop any NaN years, group & force a DataFrame
+                            df_trend = (
+                                filtered_df
+                                  .loc[filtered_df['Year'].isin(selected), ['Year','Energy Gap']]
+                                  .dropna(subset=['Year'])
+                                  .groupby('Year', as_index=False)['Energy Gap']
+                                  .mean()
+                            )
+                            # At this point, df_trend is guaranteed to be a DataFrame with a "Year" column.
+                    
+                            # 3) Cast and sort
+                            df_trend['Year'] = df_trend['Year'].astype(int)
+                            df_trend = df_trend.sort_values('Year')
+                    
+                            # 4) Plot on a numeric, linear axis
+                            fig = px.line(
+                                df_trend,
+                                x='Year',
+                                y='Energy Gap',
+                                markers=True,
+                                labels={'Energy Gap': 'Avg Energy Gap', 'Year': 'Year'}
+                            )
+                            fig.update_traces(line=dict(color='purple'))
+                            fig.update_layout(xaxis=dict(dtick=1, type='linear'), hovermode='x unified')
+                            st.plotly_chart(fig, use_container_width=True)
 
 
                     if not df_trend.empty:
