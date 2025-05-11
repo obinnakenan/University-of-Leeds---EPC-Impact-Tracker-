@@ -3,7 +3,6 @@ plotly
 pandas
 matplotlib
 altair
-base64
 numpy
 json
 re
