@@ -419,7 +419,7 @@ with tab1:
                         )
 
                         # Cast to int and sort
-                        df_trend['Year'] = df_trend['Year'].astype('Int32')
+                        df_trend['Year'] = df_trend['Year'].astype(int)
                         df_trend = df_trend.sort_values('Year')
 
                         fig_trend = px.line(
