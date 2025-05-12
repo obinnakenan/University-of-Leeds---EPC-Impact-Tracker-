@@ -180,7 +180,7 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
 
 # --- Load and clean data ---
 def load_data():
-    df = pd.read_csv(r"Merged_yorkshire_humber_EPC (1).csv")
+    df = pd.read_csv(r"Merged_yorkshire_humber_EPC.csv")
     # rename of columns
     df.rename(columns={'CURRENT_ENER_EFFICIENCY':'Current Energy Efficiency','POTENTIAL_ENERGY_EFFICIENCY':'Potential Energy Efficiency',
                        'CO2_EMISS_CURR':'Current CO2 Emission',
