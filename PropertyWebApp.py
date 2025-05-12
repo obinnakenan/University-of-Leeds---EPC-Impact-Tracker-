@@ -400,6 +400,9 @@ with tab1:
                     # Get last 5 years
                     st.write("Available years in data:", sorted(filtered_df['Year'].dropna().unique()))
 
+                    st.write("Sample raw INSPECTION_DATE values:")
+                    st.write(df['INSPECTION_DATE'].head(20))
+
                     available_years = sorted(filtered_df['Year'].dropna().unique())
 
                     if len(available_years) == 0:
