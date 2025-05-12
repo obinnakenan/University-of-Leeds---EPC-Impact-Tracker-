@@ -201,7 +201,7 @@ def load_data():
     # computes the CO2 gap by subtracting the Potential and Current CO2 potential
     df['CO2 Gap'] = df['Potential CO2 Emission']  - df['Current CO2 Emission']
     # extract the year from 'Lodgement_date'   
-    df['INSPECTION_DATE'] = pd.to_datetime(df['INSPECTION_DATE'], errors='coerce')
+    df['INSPECTION_DATE'] = pd.to_datetime(df['INSPECTION_DATE'], errors='coerce',dayfirst=True)
     df['Year'] = df['INSPECTION_DATE'].dt.year.astype('Int32')
     return df
 
