@@ -398,6 +398,8 @@ with tab1:
                     st.markdown(f"""
                         ##### Trends in Average Energy Gap by Year""")
                     # Get last 5 years
+                    st.write("Available years in data:", sorted(filtered_df['Year'].dropna().unique()))
+
                     available_years = sorted(filtered_df['Year'].dropna().unique())
 
                     if len(available_years) == 0:
