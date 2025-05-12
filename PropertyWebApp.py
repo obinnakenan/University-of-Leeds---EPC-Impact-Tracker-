@@ -398,7 +398,7 @@ with tab1:
                     st.markdown(f"""
                         ##### Trends in Average Energy Gap by Year""")
                     # Get last 5 years
-                    st.write("Available years in data:", sorted(df['Year'].dropna().unique()))
+                    st.write("Available years in data:", df)
 
                     st.write("Sample raw INSPECTION_DATE values:")
                     st.write(df['INSPECTION_DATE'].head(20))
