@@ -412,6 +412,7 @@ with tab1:
                             selected_years.append(year)
 
                     # Plot if any year is selected
+                    # Plot if any year is selected
                     if selected_years:
                         df_trend = (
                             filtered_df[filtered_df['Year'].isin(selected_years)]
@@ -419,43 +420,33 @@ with tab1:
                             .mean()
                             .reset_index()
                         )
-
-                        fig_trend = px.line(
-                            df_trend,
-                            x='Year',
-                            y='Energy Gap',
-                            markers=True,
-                            # title="Average Energy Gap by Year",
-                            labels={'Energy Gap': 'Average Energy Gap', 'Year': 'Year'}
-                        )
-
-                        # Set line color to purple
-                        fig_trend.update_traces(line=dict(color='purple'))
-
-                        fig_trend.update_layout(
-                            hovermode='x unified',
-                            xaxis=dict(dtick=1)
-                        )
-
-
-                    if not df_trend.empty:
-                        start_year = df_trend['Year'].min()
-                        end_year = df_trend['Year'].max()
-                        gap_start = df_trend[df_trend['Year'] == start_year]['Energy Gap'].values[0]
-                        gap_end = df_trend[df_trend['Year'] == end_year]['Energy Gap'].values[0]
-                        gap_change = gap_end - gap_start
-
-                        trend_direction = "increased" if gap_change > 0 else "decreased" if gap_change < 0 else "remained stable"
-
-                        st.markdown(f"""
-                        Over the selected years, the **average energy gap** has **{trend_direction}** from **{gap_start:.1f}** in **{start_year}** to **{gap_end:.1f}** in **{end_year}**.
-                        This suggests that energy efficiency has **{"worsened" if gap_change > 0 else "improved" if gap_change < 0 else "not changed significantly"}** over time across the selected region.
-                        This trend helps to evaluate the **impact of policy changes**, **renovation efforts**, or **market dynamics** affecting energy performance.
-                        """)
-
-
-
-                        st.plotly_chart(fig_trend, use_container_width=True)
+                    
+                        if not df_trend.empty and 'Year' in df_trend.columns:
+                            fig_trend = px.line(
+                                df_trend,
+                                x='Year',
+                                y='Energy Gap',
+                                markers=True,
+                                labels={'Energy Gap': 'Average Energy Gap', 'Year': 'Year'}
+                            )
+                            fig_trend.update_traces(line=dict(color='purple'))
+                            fig_trend.update_layout(hovermode='x unified', xaxis=dict(dtick=1))
+                    
+                            st.plotly_chart(fig_trend, use_container_width=True)
+                    
+                            start_year = df_trend['Year'].min()
+                            end_year = df_trend['Year'].max()
+                            gap_start = df_trend[df_trend['Year'] == start_year]['Energy Gap'].values[0]
+                            gap_end = df_trend[df_trend['Year'] == end_year]['Energy Gap'].values[0]
+                            gap_change = gap_end - gap_start
+                            trend_direction = "increased" if gap_change > 0 else "decreased" if gap_change < 0 else "remained stable"
+                    
+                            st.markdown(f"""
+                            Over the selected years, the **average energy gap** has **{trend_direction}** from **{gap_start:.1f}** in **{start_year}** to **{gap_end:.1f}** in **{end_year}**.
+                            This suggests that energy efficiency has **{"worsened" if gap_change > 0 else "improved" if gap_change < 0 else "not changed significantly"}** over time across the selected region.
+                            """)
+                        else:
+                            st.info("Not enough data to generate a valid trend for selected years.")
                     else:
                         st.info("Please select at least one year to view the trend.")
 
