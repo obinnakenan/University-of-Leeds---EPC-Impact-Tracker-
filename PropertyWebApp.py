@@ -202,6 +202,7 @@ def load_data():
     df['CO2 Gap'] = df['Potential CO2 Emission']  - df['Current CO2 Emission']
     # extract the year from 'Lodgement_date'   
     df['INSPECTION_DATE'] = pd.to_datetime(df['INSPECTION_DATE'], errors='coerce',dayfirst=True)
+    df = df[df['INSPECTION_DATE'].notna()]  # Drop rows where date parsing failed
     df['Year'] = df['INSPECTION_DATE'].dt.year.astype('Int32')
     return df
 
