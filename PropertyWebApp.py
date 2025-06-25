@@ -1139,68 +1139,68 @@ with tab3:
 
 
 # === Tab 4 ===
-with tab4:
-    # Clean up data: drop rows with missing values needed for regression
-    regression_df = df[['Region name', 'Price actual', 'Current Energy Efficiency']].dropna()
-    regression_df = regression_df[regression_df['Price actual'] > 0]
+# with tab4:
+#     # Clean up data: drop rows with missing values needed for regression
+#     regression_df = df[['Region name', 'Price actual', 'Current Energy Efficiency']].dropna()
+#     regression_df = regression_df[regression_df['Price actual'] > 0]
 
-    # --- Regional Regression Slopes ---
-    region_stats = []
+#     # --- Regional Regression Slopes ---
+#     region_stats = []
 
-    for region in regression_df['Region name'].unique():
-        sub_df = regression_df[regression_df['Region name'] == region]
-        if len(sub_df) >= 10:  # Skip regions with insufficient data
-            X = sub_df[['Current Energy Efficiency']]
-            y = sub_df['Price actual']
-            model = LinearRegression().fit(X, y)
-            score = model.score(X, y)
-            slope = model.coef_[0]
-            intercept = model.intercept_
-            region_stats.append({
-                "Region": region,
-                "R2": score,
-                "Slope": slope,
-                "Intercept": intercept,
-                "Count": len(sub_df)
-            })
+#     for region in regression_df['Region name'].unique():
+#         sub_df = regression_df[regression_df['Region name'] == region]
+#         if len(sub_df) >= 10:  # Skip regions with insufficient data
+#             X = sub_df[['Current Energy Efficiency']]
+#             y = sub_df['Price actual']
+#             model = LinearRegression().fit(X, y)
+#             score = model.score(X, y)
+#             slope = model.coef_[0]
+#             intercept = model.intercept_
+#             region_stats.append({
+#                 "Region": region,
+#                 "R2": score,
+#                 "Slope": slope,
+#                 "Intercept": intercept,
+#                 "Count": len(sub_df)
+#             })
 
-    region_results_df = pd.DataFrame(region_stats).sort_values(by='R2', ascending=False)
+#     region_results_df = pd.DataFrame(region_stats).sort_values(by='R2', ascending=False)
 
-    # --- Slope and R2 Plot ---
-    fig_regression = px.bar(
-        region_results_df,
-        x='Region', y='Slope',
-        color='R2',
-        hover_data=['R2', 'Count'],
-        title="📈 Impact of Energy Efficiency on Property Price by Region",
-        labels={"Slope": "£ Change per Efficiency Point", "R2": "Model Fit (R²)"}
-    )
-    fig_regression.update_layout(xaxis_tickangle=-45)
-    st.plotly_chart(fig_regression, use_container_width=True)
+#     # --- Slope and R2 Plot ---
+#     fig_regression = px.bar(
+#         region_results_df,
+#         x='Region', y='Slope',
+#         color='R2',
+#         hover_data=['R2', 'Count'],
+#         title="📈 Impact of Energy Efficiency on Property Price by Region",
+#         labels={"Slope": "£ Change per Efficiency Point", "R2": "Model Fit (R²)"}
+#     )
+#     fig_regression.update_layout(xaxis_tickangle=-45)
+#     st.plotly_chart(fig_regression, use_container_width=True)
 
-    # --- R² Score Table ---
-    st.markdown("### 📊 Regression Summary by Region")
-    st.dataframe(region_results_df.style.format({
-        "Slope": "£{:.0f}",
-        "Intercept": "£{:.0f}",
-        "R2": "{:.2f}",
-        "Count": "{:.0f}"
-    }), use_container_width=True)
+#     # --- R² Score Table ---
+#     st.markdown("### 📊 Regression Summary by Region")
+#     st.dataframe(region_results_df.style.format({
+#         "Slope": "£{:.0f}",
+#         "Intercept": "£{:.0f}",
+#         "R2": "{:.2f}",
+#         "Count": "{:.0f}"
+#     }), use_container_width=True)
 
-    # --- Interpretation ---
-    st.markdown("### 🧠 Insights & Interpretation")
+#     # --- Interpretation ---
+#     st.markdown("### 🧠 Insights & Interpretation")
 
-    top_region = region_results_df.iloc[0]
-    bottom_region = region_results_df.iloc[-1]
+#     top_region = region_results_df.iloc[0]
+#     bottom_region = region_results_df.iloc[-1]
 
-    st.markdown(f"""
-    - **📍 Highest sensitivity:** In **{top_region['Region']}**, each point increase in energy efficiency corresponds to an increase of **£{top_region['Slope']:,.0f}** in price (R²: {top_region['R2']:.2f}).
-    - **🔻 Lowest impact:** In **{bottom_region['Region']}**, the relationship is much weaker, with a slope of only **£{bottom_region['Slope']:,.0f}** (R²: {bottom_region['R2']:.2f}).
+#     st.markdown(f"""
+#     - **📍 Highest sensitivity:** In **{top_region['Region']}**, each point increase in energy efficiency corresponds to an increase of **£{top_region['Slope']:,.0f}** in price (R²: {top_region['R2']:.2f}).
+#     - **🔻 Lowest impact:** In **{bottom_region['Region']}**, the relationship is much weaker, with a slope of only **£{bottom_region['Slope']:,.0f}** (R²: {bottom_region['R2']:.2f}).
 
-    This variation suggests that **regional markets** perceive and value energy efficiency differently — possibly due to **local demand**, **housing stock**, or **policy incentives**.
-    """)
+#     This variation suggests that **regional markets** perceive and value energy efficiency differently — possibly due to **local demand**, **housing stock**, or **policy incentives**.
+#     """)
 
-    st.info("ℹ️ Note: Regions with low R² values show weak relationships, suggesting other factors may dominate price differences in those areas.")
+#     st.info("ℹ️ Note: Regions with low R² values show weak relationships, suggesting other factors may dominate price differences in those areas.")
 
 
 
