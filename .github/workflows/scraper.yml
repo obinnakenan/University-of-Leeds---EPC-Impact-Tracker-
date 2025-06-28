@@ -1,0 +1,34 @@
+name: Zoopla Scraper (Scheduled)
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # Run every 6 hours
+  workflow_dispatch:       # Allow manual run
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.10
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+
+    - name: Set up Chrome and chromedriver
+      run: |
+        sudo apt update
+        sudo apt install -y chromium-browser chromium-chromedriver
+        sudo ln -s /usr/lib/chromium-browser/chromedriver /usr/bin/chromedriver
+
+    - name: Run scraper
+      env:
+        DISPLAY: :99
+      run: python Zoopla Scraper.py  # Change to actual script filename
