@@ -16,22 +16,20 @@ TIMEOUT = 5
 search = ['DL8', 'DL10']
 BASE_URL = "https://www.zoopla.co.uk/to-rent/property/{outcode}/?price_frequency=per_month&q={outcode}&search_source=home&recent_search=true&pn="
 
-# Headless Chrome config
 def get_headless_driver():
     chrome_options = Options()
     chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("user-agent=Mozilla/5.0")
     return Chrome(options=chrome_options)
 
 def etext(e: WebElement) -> str:
-    if e:
-        if t := e.text.strip():
-            return t
-        if (p := e.get_property("textContent")) and isinstance(p, str):
-            return p.strip()
-    return ""
+    try:
+        return e.text.strip() if e.text else e.get_property("textContent").strip()
+    except:
+        return ""
 
 def click(driver, e):
     ActionChains(driver).click(e).perform()
@@ -46,7 +44,7 @@ def get_all(driver, css):
 def click_through(driver):
     try:
         wait = WebDriverWait(driver, TIMEOUT)
-        button = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button[data-testid=uc-deny-all-button]")))
+        button = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button[data-testid='uc-deny-all-button']")))
         click(driver, button)
     except:
         pass
@@ -68,12 +66,12 @@ def get_details(driver, listing_url):
             return "N/A"
 
     epc_rating = find_and_extract("EPC rating", r"(EPC rating.*?)\s")
-    stations = ",".join([etext(e) for e in get_all(driver2, "div.b1ub3l4")])
-    schools = ",".join([etext(e) for e in get_all(driver2, "div.b1ub3l7")])
-    longitude = find_and_extract("longitude", r'"longitude\\":(-?\d+\.\d+)')
-    latitude = find_and_extract("latitude", r'"latitude\\":(-?\d+\.\d+)')
-    postalCode = find_and_extract("postalCode", r'"postalCode\\":\\"([^\\"]+)\\"')
-    uprn = find_and_extract("uprn", r'"uprn\\":\\"(\d+)\\"')
+    stations = ",".join([etext(e) for e in get_all(driver2, "div[data-testid='nearby-stations'] li")])
+    schools = ",".join([etext(e) for e in get_all(driver2, "div[data-testid='nearby-schools'] li")])
+    longitude = find_and_extract("longitude", r'"longitude":(-?\d+\.\d+)')
+    latitude = find_and_extract("latitude", r'"latitude":(-?\d+\.\d+)')
+    postalCode = find_and_extract("postalCode", r'"postalCode":"([^"]+)"')
+    uprn = find_and_extract("uprn", r'"uprn":"(\d+)"')
     county_area_name = find_and_extract("county_area_name", r'"county_area_name":"(.*?)"')
     post_town_name = find_and_extract("post_town_name", r'"post_town_name":"(.*?)"')
     price_actual = find_and_extract("price_actual", r'"price_actual":"(\d+)"')
@@ -93,24 +91,26 @@ def get_details(driver, listing_url):
 
 def scrape_page(driver):
     result = []
-    for house in get_all(driver, "div._19tyedx0"):
+    cards = get_all(driver, "div[data-testid='listing-card']")
+
+    for house in cards:
         try:
             listing_url = house.find_element(By.XPATH, ".//a[starts-with(@href, '/to-rent/')]").get_attribute("href")
+            if not listing_url.startswith("https://"):
+                listing_url = "https://www.zoopla.co.uk" + listing_url
+
             details = get_details(driver, listing_url)
             epc_rating, stations, schools, longitude, latitude, postalCode, uprn, county_area_name, post_town_name, price_actual, price_max, price_min, property_type, region_name, council_tax = details
 
-            Amount = etext(house.find_element(By.CSS_SELECTOR, "p._64if862._194zg6t6"))
-            Amount_per_week = etext(house.find_element(By.CSS_SELECTOR, "p._64if863._194zg6t8"))
-            Address = etext(house.find_element(By.CLASS_NAME, "m6hnz62._194zg6t9"))
+            Amount = etext(house.find_element(By.CSS_SELECTOR, "[data-testid='listing-price']"))
+            Amount_per_week = ""  # Can add logic if displayed
+            Address = etext(house.find_element(By.CSS_SELECTOR, "[data-testid='listing-address']"))
 
-            try: Number_of_rooms = etext(house.find_element(By.CSS_SELECTOR, "p._1wickv3._194zg6t9 span:nth-child(1)"))
-            except: Number_of_rooms = " "
-            try: Number_of_bath = etext(house.find_element(By.CSS_SELECTOR, "p._1wickv3._194zg6t9 span:nth-child(2)"))
-            except: Number_of_bath = " "
-            try: Reception = etext(house.find_element(By.CSS_SELECTOR, "p._1wickv3._194zg6t9 span:nth-child(3)"))
-            except: Reception = " "
-            try: Square_foot = etext(house.find_element(By.CSS_SELECTOR, "p._1wickv3._194zg6t9 span:nth-child(4)"))
-            except: Square_foot = " "
+            features = house.find_elements(By.CSS_SELECTOR, "[data-testid='listing-summary'] li")
+            Number_of_rooms = features[0].text if len(features) > 0 else ""
+            Number_of_bath = features[1].text if len(features) > 1 else ""
+            Reception = features[2].text if len(features) > 2 else ""
+            Square_foot = features[3].text if len(features) > 3 else ""
 
             result.append({
                 "Amount": Amount, "Amount per week": Amount_per_week, "Address": Address,
@@ -124,8 +124,10 @@ def scrape_page(driver):
                 "Council tax": council_tax, "Listing URL": listing_url
             })
 
-        except NoSuchElementException:
+        except Exception as e:
+            print(f"⚠️ Skipped a listing due to error: {e}")
             continue
+
     return result
 
 # Main script execution
@@ -137,18 +139,20 @@ if __name__ == "__main__":
     for outcode in search:
         print(f"🔍 Searching: {outcode}")
         for page in range(1, max_pages + 1):
-            url = BASE_URL.format(outcode=outcode, page=page) + str(page)
-            print(f"Scraping page {page} of {outcode} → {url}")
+            url = BASE_URL.format(outcode=outcode) + str(page)
+            print(f"📄 Scraping page {page} → {url}")
             driver.get(url)
             click_through(driver)
             page_results = scrape_page(driver)
 
             if not page_results:
-                print(f"No results on page {page}, stopping early for {outcode}")
+                print(f"🛑 No listings found on page {page} for {outcode}.")
                 break
+
             all_results.extend(page_results)
 
     driver.quit()
+
     df = pd.DataFrame(all_results)
 
     # Save to CSV
@@ -156,5 +160,6 @@ if __name__ == "__main__":
     os.makedirs("output", exist_ok=True)
     output_path = f"output/zoopla_scrape_{timestamp}.csv"
     df.to_csv(output_path, index=False)
-    print(f"✅ Scraping complete. Total listings scraped: {len(df)}")
-    print(f"📁 Data saved to {output_path}")
+
+    print(f"\n✅ Scraping complete. Listings scraped: {len(df)}")
+    print(f"📁 Data saved to: {output_path}")
