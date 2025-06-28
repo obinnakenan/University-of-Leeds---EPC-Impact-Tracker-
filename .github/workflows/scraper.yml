@@ -16,7 +16,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.14.0'
+        python-version: 'python-3.14.0-beta.3-linux-22.04-arm64-freethreaded.tar.gz'
 
     - name: Install dependencies
       run: |
