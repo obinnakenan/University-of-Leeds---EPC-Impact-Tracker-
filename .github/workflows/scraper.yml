@@ -26,7 +26,7 @@ jobs:
     - name: Run scraper
       run: |
         mkdir -p output
-        python Zoopla_Scraper.py
+        python scripts/Zoopla_Scraper.py
 
     - name: Upload output CSV
       uses: actions/upload-artifact@v4
