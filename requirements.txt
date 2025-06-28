@@ -5,6 +5,7 @@ matplotlib
 altair
 numpy
 selenium
+chromedriver-autoinstaller
 
 
 
