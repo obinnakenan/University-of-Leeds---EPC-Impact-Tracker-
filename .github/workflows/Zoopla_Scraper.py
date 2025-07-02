@@ -13,7 +13,7 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException
 
 # Constants
 TIMEOUT = 5
-search = ['DL8', 'DL10']
+search = ['LS1']
 BASE_URL = "https://www.zoopla.co.uk/to-rent/property/{outcode}/?price_frequency=per_month&q={outcode}&search_source=home&recent_search=true&pn="
 
 def get_headless_driver():
@@ -66,8 +66,8 @@ def get_details(driver, listing_url):
             return "N/A"
 
     epc_rating = find_and_extract("EPC rating", r"(EPC rating.*?)\s")
-    stations = ",".join([etext(e) for e in get_all(driver2, "div[data-testid='nearby-stations'] li")])
-    schools = ",".join([etext(e) for e in get_all(driver2, "div[data-testid='nearby-schools'] li")])
+    stations = ",".join([etext(e) for e in get_all(driver2, "div.b1ub3l4")])
+    schools = ",".join([etext(e) for e in get_all(driver2, "div.b1ub3l7")])
     longitude = find_and_extract("longitude", r'"longitude":(-?\d+\.\d+)')
     latitude = find_and_extract("latitude", r'"latitude":(-?\d+\.\d+)')
     postalCode = find_and_extract("postalCode", r'"postalCode":"([^"]+)"')
@@ -91,26 +91,38 @@ def get_details(driver, listing_url):
 
 def scrape_page(driver):
     result = []
-    cards = get_all(driver, "div[data-testid='listing-card']")
+    cards = get_all(driver, "div._19tyedx0")
 
     for house in cards:
         try:
-            listing_url = house.find_element(By.XPATH, ".//a[starts-with(@href, '/to-rent/')]").get_attribute("href")
-            if not listing_url.startswith("https://"):
-                listing_url = "https://www.zoopla.co.uk" + listing_url
+            listing_url = house.find_element(By.XPATH, ".//*[starts-with(@href, '/to-rent/')]").get_attribute("href")
+
 
             details = get_details(driver, listing_url)
             epc_rating, stations, schools, longitude, latitude, postalCode, uprn, county_area_name, post_town_name, price_actual, price_max, price_min, property_type, region_name, council_tax = details
 
-            Amount = etext(house.find_element(By.CSS_SELECTOR, "[data-testid='listing-price']"))
-            Amount_per_week = ""  # Can add logic if displayed
-            Address = etext(house.find_element(By.CSS_SELECTOR, "[data-testid='listing-address']"))
-
-            features = house.find_elements(By.CSS_SELECTOR, "[data-testid='listing-summary'] li")
-            Number_of_rooms = features[0].text if len(features) > 0 else ""
-            Number_of_bath = features[1].text if len(features) > 1 else ""
-            Reception = features[2].text if len(features) > 2 else ""
-            Square_foot = features[3].text if len(features) > 3 else ""
+            try:
+                Amount = etext(house.find_element(By.XPATH, ".//*[contains(text(),'pcm')]"))
+            except:
+                Amount = " "
+            Amount_per_week = etext(house.find_element(By.XPATH, ".//*[contains(text(),'pw')]"))
+            Address = etext(house.find_element(By.CSS_SELECTOR, "address"))
+            try:
+                Number_of_rooms = etext(house.find_element(By.XPATH, ".//*[contains(text(),'bed')]"))
+            except:
+                Number_of_rooms = " "
+            try:
+                Number_of_bath = etext(house.find_element(By.XPATH, ".//*[contains(text(),'bath')]"))
+            except:
+                Number_of_bath=" "
+            try:
+                Reception = etext(house.find_element(By.XPATH, ".//*[contains(text(),'reception')]"))
+            except:
+                Reception = " " 
+            try:
+                Square_foot = etext(house.find_element(By.XPATH, ".//*[contains(text(),'sq. ft')]"))
+            except:
+                 Square_foot = " "
 
             result.append({
                 "Amount": Amount, "Amount per week": Amount_per_week, "Address": Address,
