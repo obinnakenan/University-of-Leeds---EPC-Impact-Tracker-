@@ -38,7 +38,7 @@ jobs:
       - name: Run scraper
         run: |
           mkdir -p output
-          python zoopla_scraper.py
+          python .github/workflows/zoopla_scraper.py
 
       - name: Upload scraped data
         uses: actions/upload-artifact@v4
