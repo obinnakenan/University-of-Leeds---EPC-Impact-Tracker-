@@ -18,8 +18,10 @@ jobs:
       with:
         python-version: '3.9'
 
-    - name: Install dependencies
+    - name: Install dependencies and Chrome dependencies
       run: |
+        sudo apt-get update
+        sudo apt-get install -y unzip xvfb libxi6 libgconf-2-4 libnss3 libxss1 libappindicator1 libindicator7 libasound2
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
@@ -28,8 +30,14 @@ jobs:
         mkdir -p output
         python Zoopla_Scraper.py
 
-    - name: Upload output CSV
+    - name: Upload CSV results
       uses: actions/upload-artifact@v4
       with:
         name: scraped-results
-        path: output/
+        path: output/*.csv
+
+    - name: Upload debug screenshots
+      uses: actions/upload-artifact@v4
+      with:
+        name: debug-screenshots
+        path: output/*.png
