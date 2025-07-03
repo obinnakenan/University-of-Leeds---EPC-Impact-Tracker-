@@ -2,7 +2,7 @@ name: Zoopla Scraper
 
 on:
   schedule:
-    - cron: '0 */6 * * *'  # every 6 hours
+    - cron: '0 */6 * * *'
   workflow_dispatch:
 
 jobs:
@@ -10,34 +10,38 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
+      - name: Install system dependencies for headless Chrome
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libnss3 \
+            libxss1 \
+            libappindicator3-1 \
+            libatk-bridge2.0-0 \
+            libgtk-3-0 \
+            libgbm-dev \
+            libasound2t64
 
-    - name: Install dependencies and Chrome dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y unzip xvfb libxi6 libgconf-2-4 libnss3 libxss1 libappindicator1 libindicator7 libasound2
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
 
-    - name: Run scraper
-      run: |
-        mkdir -p output
-        python Zoopla_Scraper.py
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-    - name: Upload CSV results
-      uses: actions/upload-artifact@v4
-      with:
-        name: scraped-results
-        path: output/*.csv
+      - name: Run scraper
+        run: |
+          mkdir -p output
+          python Zoopla_Scraper.py
 
-    - name: Upload debug screenshots
-      uses: actions/upload-artifact@v4
-      with:
-        name: debug-screenshots
-        path: output/*.png
+      - name: Upload scraped data
+        uses: actions/upload-artifact@v4
+        with:
+          name: scraped-results
+          path: output/
