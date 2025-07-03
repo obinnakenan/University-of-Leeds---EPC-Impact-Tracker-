@@ -13,7 +13,7 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException
 
 # Constants
 TIMEOUT = 5
-search = ['LS1']
+search = ['LS1',"LS2 1AA","Bradford"]
 BASE_URL = "https://www.zoopla.co.uk/to-rent/property/{outcode}/?price_frequency=per_month&q={outcode}&search_source=home&recent_search=true&pn="
 
 def get_headless_driver():
