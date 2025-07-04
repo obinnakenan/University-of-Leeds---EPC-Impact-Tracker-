@@ -18,13 +18,8 @@ search = ['LS1']
 BASE_URL = "https://www.zoopla.co.uk/to-rent/property/{outcode}/?price_frequency=per_month&q={outcode}&search_source=home&recent_search=true&pn="
 
 
-
-
 def get_headless_driver():
-    options = uc.ChromeOptions()
-    options.add_argument("--headless=new")
-    return uc.Chrome(options=options)
-
+    return Chrome()  # Opens a visible browser
 
 
 def etext(e: WebElement) -> str:
