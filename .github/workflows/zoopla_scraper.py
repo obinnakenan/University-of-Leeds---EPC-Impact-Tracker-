@@ -13,27 +13,17 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException
 
 # Constants
 TIMEOUT = 5
-search = ['LS1',"LS2 1AA","Bradford"]
+search = ['LS1']
 BASE_URL = "https://www.zoopla.co.uk/to-rent/property/{outcode}/?price_frequency=per_month&q={outcode}&search_source=home&recent_search=true&pn="
 
 def get_headless_driver():
     chrome_options = Options()
-    chrome_options.add_argument("--headless=chrome")  # Changed from 'new' for stability
+    chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36")
-    driver = Chrome(options=chrome_options)
-
-    driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
-        "source": """
-            Object.defineProperty(navigator, 'webdriver', {
-                get: () => undefined
-            })
-        """
-    })
-
-    return driver
+    chrome_options.add_argument("user-agent=Mozilla/5.0")
+    return Chrome(options=chrome_options)
 
 def etext(e: WebElement) -> str:
     try:
@@ -55,10 +45,9 @@ def click_through(driver):
     try:
         wait = WebDriverWait(driver, TIMEOUT)
         button = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button[data-testid='uc-deny-all-button']")))
-        print("✅ Cookie popup found. Clicking deny all.")
         click(driver, button)
-    except Exception as e:
-        print(f"ℹ️ No cookie popup or error dismissing: {e}")
+    except:
+        pass
 
 def get_details(driver, listing_url):
     driver2 = get_headless_driver()
@@ -100,29 +89,40 @@ def get_details(driver, listing_url):
     driver2.quit()
     return epc_rating, stations, schools, longitude, latitude, postalCode, uprn, county_area_name, post_town_name, price_actual, price_max, price_min, property_type, region_name, ",".join(council_tax)
 
-def scrape_page(driver, page_num):
+def scrape_page(driver):
     result = []
     cards = get_all(driver, "div._19tyedx0")
-    print(f"🔎 Found {len(cards)} listings on page {page_num}.")
-
-    # Take screenshot for debugging
-    screenshot_name = f"output/debug_page_{page_num}.png"
-    driver.save_screenshot(screenshot_name)
-    print(f"🖼️ Screenshot saved: {screenshot_name}")
 
     for house in cards:
         try:
             listing_url = house.find_element(By.XPATH, ".//*[starts-with(@href, '/to-rent/')]").get_attribute("href")
+
+
             details = get_details(driver, listing_url)
             epc_rating, stations, schools, longitude, latitude, postalCode, uprn, county_area_name, post_town_name, price_actual, price_max, price_min, property_type, region_name, council_tax = details
 
-            Amount = etext(house.find_element(By.XPATH, ".//*[contains(text(),'pcm')]"))
+            try:
+                Amount = etext(house.find_element(By.XPATH, ".//*[contains(text(),'pcm')]"))
+            except:
+                Amount = " "
             Amount_per_week = etext(house.find_element(By.XPATH, ".//*[contains(text(),'pw')]"))
             Address = etext(house.find_element(By.CSS_SELECTOR, "address"))
-            Number_of_rooms = etext(house.find_element(By.XPATH, ".//*[contains(text(),'bed')]"))
-            Number_of_bath = etext(house.find_element(By.XPATH, ".//*[contains(text(),'bath')]"))
-            Reception = etext(house.find_element(By.XPATH, ".//*[contains(text(),'reception')]"))
-            Square_foot = etext(house.find_element(By.XPATH, ".//*[contains(text(),'sq. ft')]"))
+            try:
+                Number_of_rooms = etext(house.find_element(By.XPATH, ".//*[contains(text(),'bed')]"))
+            except:
+                Number_of_rooms = " "
+            try:
+                Number_of_bath = etext(house.find_element(By.XPATH, ".//*[contains(text(),'bath')]"))
+            except:
+                Number_of_bath=" "
+            try:
+                Reception = etext(house.find_element(By.XPATH, ".//*[contains(text(),'reception')]"))
+            except:
+                Reception = " " 
+            try:
+                Square_foot = etext(house.find_element(By.XPATH, ".//*[contains(text(),'sq. ft')]"))
+            except:
+                 Square_foot = " "
 
             result.append({
                 "Amount": Amount, "Amount per week": Amount_per_week, "Address": Address,
@@ -149,16 +149,16 @@ if __name__ == "__main__":
     driver = get_headless_driver()
 
     for outcode in search:
-        print(f"\n🔍 Searching: {outcode}")
+        print(f"🔍 Searching: {outcode}")
         for page in range(1, max_pages + 1):
             url = BASE_URL.format(outcode=outcode) + str(page)
-            print(f"\n📄 Scraping page {page} → {url}")
+            print(f"📄 Scraping page {page} → {url}")
             driver.get(url)
             click_through(driver)
-            page_results = scrape_page(driver, page)
+            page_results = scrape_page(driver)
 
             if not page_results:
-                print(f"🛑 No listings found on page {page} for {outcode}. Stopping...")
+                print(f"🛑 No listings found on page {page} for {outcode}.")
                 break
 
             all_results.extend(page_results)
@@ -167,6 +167,7 @@ if __name__ == "__main__":
 
     df = pd.DataFrame(all_results)
 
+    # Save to CSV
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
     os.makedirs("output", exist_ok=True)
     output_path = f"output/zoopla_scrape_{timestamp}.csv"
