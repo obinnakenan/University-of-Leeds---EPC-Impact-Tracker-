@@ -98,13 +98,9 @@ def get_details(driver, listing_url):
 
 def scrape_page(driver):
     result = []
+    driver.save_screenshot("debug_screenshot.png")
     cards = get_all(driver, "div._19tyedx0")
-    print(f"🔎 Found {len(cards)} listings on this page.")
     
-    if len(cards) == 0:
-        with open("debug_page.html", "w", encoding="utf-8") as f:
-            f.write(driver.page_source)
-        print("⚠️ Saved debug_page.html for inspection (empty page or blocked?)")
     for house in cards:
         try:
             listing_url = house.find_element(By.XPATH, ".//*[starts-with(@href, '/to-rent/')]").get_attribute("href")
