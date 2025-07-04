@@ -41,7 +41,7 @@ jobs:
           python .github/workflows/zoopla_scraper.py
 
       - name: Upload CSV
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: zoopla-results
           path: output/*.csv
