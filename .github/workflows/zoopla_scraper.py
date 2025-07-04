@@ -18,8 +18,25 @@ search = ['LS1']
 BASE_URL = "https://www.zoopla.co.uk/to-rent/property/{outcode}/?price_frequency=per_month&q={outcode}&search_source=home&recent_search=true&pn="
 
 
+import tempfile
+from selenium.webdriver import Chrome
+from selenium.webdriver.chrome.options import Options
+
 def get_headless_driver():
-    return Chrome()  # Opens a visible browser
+    chrome_options = Options()
+    chrome_options.add_argument("--headless=new")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+    chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+    
+    # 🔧 TEMP FIX: use unique user data directory
+    user_data_dir = tempfile.mkdtemp()
+    chrome_options.add_argument(f"--user-data-dir={user_data_dir}")
+    
+    return Chrome(options=chrome_options)
+
 
 
 def etext(e: WebElement) -> str:
