@@ -215,7 +215,7 @@ with tab1:
     # View mode
     filter_mode = st.radio(
         "Select Data View Mode:",
-        ["Rental(s)", "Sales"],
+        ["Rental", "Sales"],
         horizontal=True
     )
 
