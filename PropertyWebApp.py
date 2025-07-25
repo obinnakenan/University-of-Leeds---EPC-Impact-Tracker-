@@ -219,7 +219,7 @@ with tab1:
         horizontal=True
     )
 
-    if filter_mode == "Rental(s)":
+    if filter_mode == "Rental":
         with st.container():
             col_filters, col_main = st.columns([1, 2])
 
