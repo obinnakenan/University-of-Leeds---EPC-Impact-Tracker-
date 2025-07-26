@@ -28,7 +28,7 @@ jobs:
         pip install pandas undetected-chromedriver selenium
 
     - name: Run scraper
-      run: python .github/workflows/zoopla_scraper.py
+      run: python .github/workflows/House_scraper.py
 
     - name: Upload results
       uses: actions/upload-artifact@v4
