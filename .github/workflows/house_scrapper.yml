@@ -1,0 +1,37 @@
+name: Zoopla Scraper
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '0 */6 * * *'  # Runs at 00:00, 06:00, 12:00, 18:00 UTC
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: 3.11
+
+    - name: Install Chrome
+      uses: browser-actions/setup-chrome@v1
+
+    - name: Install Python packages
+      run: |
+        pip install pandas undetected-chromedriver selenium
+
+    - name: Run scraper
+      run: python .github/workflows/zoopla_scraper.py
+
+    - name: Upload results
+      uses: actions/upload-artifact@v4
+      with:
+        name: House-scrape-results
+        path: output/*.csv
