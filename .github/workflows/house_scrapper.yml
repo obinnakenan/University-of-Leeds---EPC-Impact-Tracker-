@@ -1,4 +1,4 @@
-name: Zoopla Scraper
+name: House Scraper
 
 on:
   push:
@@ -27,7 +27,7 @@ jobs:
       run: |
         pip install pandas undetected-chromedriver selenium
 
-    - name: Run house_scraper
+    - name: Run house_scrapper
       run: python .github/workflows/House_scrapping.py
 
     - name: Upload results
