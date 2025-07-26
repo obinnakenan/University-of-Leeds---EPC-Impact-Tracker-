@@ -27,7 +27,7 @@ jobs:
       run: |
         pip install pandas undetected-chromedriver selenium
 
-    - name: Run scraper
+    - name: Run house_scraper
       run: python .github/workflows/House_scrapping.py
 
     - name: Upload results
