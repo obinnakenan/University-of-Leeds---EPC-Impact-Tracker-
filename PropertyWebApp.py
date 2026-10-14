@@ -378,7 +378,7 @@ with tab1:
                             color='Energy Gap',
                             color_continuous_scale=color_scale,
                             range_color=color_range,
-                            mapbox_style="carto-positron",
+                            map_style="carto-positron",
                             zoom=6,
                             center={"lat": center_lat, "lon": center_lon},
                             opacity=0.5,
