@@ -370,7 +370,7 @@ with tab1:
                         center_lon = map_df['Longitude'].mean()
 
                         # --- Plot choropleth map ---
-                        fig = px.choropleth_mapbox(
+                        fig = px.choropleth_map(
                             map_df,
                             geojson=geojson_data,
                             locations='LAD_NM',
