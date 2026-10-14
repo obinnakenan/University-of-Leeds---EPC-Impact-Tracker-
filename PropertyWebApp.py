@@ -749,7 +749,7 @@ with tab2:
                         color_scale = "plasma"
 
                         # === Plot Map ===
-                        fig = px.choropleth_mapbox(
+                        fig = px.choropleth_map(
                             agg_map_df,
                             geojson=geojson_data,
                             locations='LAD_NM',
@@ -757,7 +757,7 @@ with tab2:
                             color='CO2 Gap',
                             color_continuous_scale=color_scale,
                             range_color=color_range,
-                            mapbox_style="carto-positron",
+                            map_style="carto-positron",
                             zoom=6,
                             center={"lat": center_lat, "lon": center_lon},
                             opacity=0.5,
